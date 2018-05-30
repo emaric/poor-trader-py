@@ -28,7 +28,7 @@ pycodestyle --ignore=E501 poor_trader/pse.py
 
 
 #### Trades Table
-![Trades Table](readme_assets/trades.csv "Trades Table")
+![Trades Table](docs/trades.csv "Trades Table")
 
 
 
@@ -67,4 +67,4 @@ pycodestyle --ignore=E501 poor_trader/pse.py
 
 
 #### Equity Curve
-![Equity Curve Chart](readme_assets/equity_curve_chart.png "Equity Curve Chart")
+![Equity Curve Chart](docs/equity_curve_chart.png "Equity Curve Chart")
