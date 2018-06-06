@@ -3,8 +3,10 @@ from enum import Enum
 import pandas as pd
 
 from poor_trader import config, utils
+from poor_trader.backtesting.broker import COLFinancial
 from poor_trader.backtesting.entity import Backtester, Portfolio, Account, PositionSizing, Broker, Action
-from poor_trader.market import Market
+from poor_trader.backtesting.position_sizing import EquityPercentage
+from poor_trader.market import Market, pkl_to_market
 from poor_trader.screening.entity import Direction
 from poor_trader.screening.indicator import PickleIndicatorFactory
 from poor_trader.screening.strategy import Strategy
@@ -254,3 +256,21 @@ class DataFramePortfolio(Portfolio):
     def get_drawdown_percent(self, date):
         return self.equity_curve.loc[date][EquityCurveEnum.DRAWDOWN_PERCENT.value]
 
+
+if __name__ == '__main__':
+    INDICATORS_PATH = config.TEMP_PATH / 'indicators'
+    HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
+    print('INDICATOR_PATH', INDICATORS_PATH)
+
+    pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
+
+    account = Account(100000)
+    portfolio = DataFramePortfolio(account=account,
+                                   indicators_dir_path=INDICATORS_PATH,
+                                   market=pse_market,
+                                   position_sizing=EquityPercentage(market=pse_market),
+                                   broker=COLFinancial(),
+                                   name='Portfolio')
+    default = DataFrameBacktester(portfolio)
+    equity_curve = default.run(pse_market)
+    print(equity_curve)
