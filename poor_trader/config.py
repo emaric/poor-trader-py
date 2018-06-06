@@ -11,6 +11,8 @@ PICKLE_EXTENSION = 'pkl'
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
+DATE_FORMAT = '%Y-%m-%d'
+
 ROOT_PATH = Path(os.path.dirname(__file__)).parent
 
 RESOURCES_PATH = ROOT_PATH / 'resources'

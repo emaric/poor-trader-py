@@ -231,12 +231,17 @@ class DataFramePortfolio(Portfolio):
             lambda d: -(d.max()-d[-1]))
         self.equity_curve[EquityCurveEnum.DRAWDOWN_PERCENT.value] = self.equity_curve[EquityCurveEnum.EQUITY.value].expanding(1).apply(
             lambda d: -(100 * (d.max()-d[-1]) / d.max()))
+        self.equity_curve = utils.round_df(self.equity_curve)
 
     def update(self, date, symbols):
         super().update(date, symbols)
         self.update_positions(None, None, date)
         self.update_account(pd.DataFrame(columns=TRANSACTION_COLUMNS))
         self.update_equity_curve(date)
+        print(pd.to_datetime(date).strftime(config.DATE_FORMAT),
+              '{:>18.4f}'.format(self.get_equity(date)),
+              '{:>18.4f}'.format(self.get_cash(date)),
+              '{:>13.4f}'.format(self.get_drawdown_percent(date)))
 
     def get_positions(self):
         return self.positions
