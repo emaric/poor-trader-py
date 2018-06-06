@@ -1,3 +1,4 @@
+import datetime
 import os
 from enum import Enum
 
@@ -50,6 +51,10 @@ class DataFrameBacktester(Backtester):
     def run(self, market: Market, start=None, end=None):
         df = pd.DataFrame(columns=EQUITY_CURVE_COLUMNS)
         for date in market.get_dates():
+            if start is not None and pd.to_datetime(date) < start:
+                continue
+            if end is not None and pd.to_datetime(date) > end:
+                break
             symbols = market.get_symbols(date)
             self.portfolio.update(date, symbols)
             df.loc[date] = pd.Series()
@@ -230,13 +235,24 @@ class DataFramePortfolio(Portfolio):
                 self.update_account(close_transactions)
 
     def update_equity_curve(self, date):
+        if self.equity_curve.empty:
+            index = pd.to_datetime(date) - datetime.timedelta(days=1)
+            self.equity_curve.loc[index] = pd.Series()
+            self.equity_curve.loc[index, EquityCurveEnum.EQUITY.value] = self.account.starting_balance
+            self.equity_curve.loc[index, EquityCurveEnum.CASH.value] = self.account.starting_balance
+            self.equity_curve = self.equity_curve.fillna(0)
+            print(index.strftime(config.DATE_FORMAT),
+                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveEnum.EQUITY.value]),
+                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveEnum.CASH.value]),
+                  '{:>13.4f}'.format(self.equity_curve.loc[index][EquityCurveEnum.DRAWDOWN_PERCENT.value]))
+
         self.equity_curve.loc[date] = pd.Series()
         self.equity_curve.loc[date, EquityCurveEnum.EQUITY.value] = self.account.equity
         self.equity_curve.loc[date, EquityCurveEnum.CASH.value] = self.account.cash
         self.equity_curve[EquityCurveEnum.DRAWDOWN.value] = self.equity_curve[EquityCurveEnum.EQUITY.value].expanding(1).apply(
-            lambda d: -(d.max()-d[-1]))
+                                                            lambda d: -(d.max()-d[-1]))
         self.equity_curve[EquityCurveEnum.DRAWDOWN_PERCENT.value] = self.equity_curve[EquityCurveEnum.EQUITY.value].expanding(1).apply(
-            lambda d: -(100 * (d.max()-d[-1]) / d.max()))
+                                                                    lambda d: -(100 * (d.max()-d[-1]) / d.max()))
         self.equity_curve = utils.round_df(self.equity_curve)
 
     def update(self, date, symbols):
@@ -296,7 +312,7 @@ if __name__ == '__main__':
 
     pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
     strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market))]
-    portfolio = DataFramePortfolio(account=Account(100000),
+    portfolio = DataFramePortfolio(account=Account(1000000),
                                    indicators_dir_path=INDICATORS_PATH,
                                    market=pse_market,
                                    position_sizing=EquityPercentage(market=pse_market),
@@ -304,5 +320,5 @@ if __name__ == '__main__':
                                    strategies=strategies,
                                    name='Portfolio')
     default = DataFrameBacktester(portfolio)
-    equity_curve = default.run(pse_market)
+    equity_curve = default.run(pse_market, start=datetime.datetime.strptime('2015-01-01', config.DATE_FORMAT))
     print(equity_curve)
