@@ -1,4 +1,3 @@
-
 import traceback
 import pandas as pd
 import numpy as np
@@ -6,16 +5,21 @@ from matplotlib import pylab as plt
 
 plt.style.use('ggplot')
 
+
 def generate_equity_chart(df_equity_curve, fpath, title='Equity Curve'):
+    df_equity_curve['Date'] = df_equity_curve.index
     df_equity_curve = df_equity_curve.reset_index()
-    xticks = np.linspace(0, len(df_equity_curve.index.values) - 1, 20 if len(df_equity_curve.index.values) >= 20 else (len(df_equity_curve.index.values)))
-    xlabels = [pd.to_datetime(df_equity_curve.index.values[int(index)]).strftime('%Y-%m-%d') for index in
+    xticks = np.linspace(0, len(df_equity_curve.index.values) - 1,
+                         20 if len(df_equity_curve.index.values) >= 20 else (len(df_equity_curve.index.values)))
+    xlabels = [pd.to_datetime(df_equity_curve.Date.values[int(index)]).strftime('%Y-%m-%d') for index in
                xticks]
 
     fig = plt.figure(figsize=(30, 30))
 
     ax = plt.subplot(311)
-    ax.set_title('Equity Curve : cash={}, equity={}'.format(df_equity_curve.Cash.values[-1], df_equity_curve.Equity.values[-1]), fontsize=18)
+    ax.set_title(
+        'Equity Curve : cash={}, equity={}'.format(df_equity_curve.Cash.values[-1], df_equity_curve.Equity.values[-1]),
+        fontsize=18)
     ax.bar(df_equity_curve.index, df_equity_curve.Equity, width=1, color='limegreen')
     ax.bar(df_equity_curve.index, df_equity_curve.Cash, width=1, color='green')
     ax.set_xticks(xticks)
@@ -47,4 +51,3 @@ def generate_equity_chart(df_equity_curve, fpath, title='Equity Curve'):
         plt.show()
     plt.clf()
     plt.close(fig)
-

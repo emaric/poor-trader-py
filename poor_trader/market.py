@@ -1,0 +1,103 @@
+import abc
+
+import pandas as pd
+
+
+class Market(object):
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, symbols, name='Market'):
+        self.name = name
+        self.__symbols__ = symbols
+
+    @abc.abstractmethod
+    def get_dates(self, symbols=None):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_symbols(self, date=None):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_open(self, date=None, symbol=None):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_high(self, date=None, symbol=None):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_low(self, date=None, symbol=None):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_close(self, date=None, symbol=None):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_volume(self, date=None, symbol=None):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_quotes(self, date=None, symbol=None):
+        raise NotImplementedError
+
+
+class DataFrameMarket(Market):
+    def __init__(self, df_historical_data, symbols=None, name='DataFrameMarket'):
+        super().__init__(symbols, name)
+        self.__df_historical_data__ = df_historical_data
+        self.__symbols__ = symbols or self.get_symbols()
+
+    def get_dates(self, symbols=None):
+        if symbols is None:
+            return self.__df_historical_data__.dropna(thresh=1).index.values
+        else:
+            return self.__df_historical_data__.filter(regex='^({})_Date'.format('|'.join(symbols))).dropna(thresh=1).index.values
+
+    def get_symbols(self, date=None):
+        suffix = '_Date'
+        if date is None:
+            return [_[:-len(suffix)] for _ in self.__df_historical_data__.filter(like=suffix).columns]
+        else:
+            return [_[:-len(suffix)] for _ in self.__df_historical_data__.filter(like=suffix).loc[date:date].dropna(axis=1).columns]
+
+    def get_quotes(self, date=None, symbol=None):
+        df = self.__df_historical_data__.copy()
+        if date is not None:
+            df = df.loc[date:date]
+        if symbol is not None:
+            df = df.filter(regex='^{}_'.format(symbol))
+            df.columns = [_.replace('{}_'.format(symbol), '') for _ in df.columns]
+        return df
+
+    def __get_value_by_column__(self, column, date=None, symbol=None):
+        df = self.get_quotes(date, symbol).filter(like=column)
+        if len(df.columns) == 1 and len(df.index.values) == 1:
+            return df.iloc[0][column]
+        return df
+
+    def get_open(self, date=None, symbol=None):
+        return self.__get_value_by_column__('Open', date=date, symbol=symbol)
+
+    def get_high(self, date=None, symbol=None):
+        return self.__get_value_by_column__('High', date=date, symbol=symbol)
+
+    def get_low(self, date=None, symbol=None):
+        return self.__get_value_by_column__('Low', date=date, symbol=symbol)
+
+    def get_close(self, date=None, symbol=None):
+        return self.__get_value_by_column__('Close', date=date, symbol=symbol)
+
+    def get_volume(self, date=None, symbol=None):
+        return self.__get_value_by_column__('Volume', date=date, symbol=symbol)
+
+
+def csv_to_market(name, csv_path):
+    df_historical_data = pd.read_csv(csv_path, parse_dates=True, index_col=0)
+    return DataFrameMarket(df_historical_data=df_historical_data, name=name)
+
+
+def pkl_to_market(name, pkl_path):
+    df_historical_data = pd.read_pickle(pkl_path)
+    return DataFrameMarket(df_historical_data=df_historical_data, name=name)

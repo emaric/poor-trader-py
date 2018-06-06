@@ -98,7 +98,10 @@ ENV/
 # mypy
 .mypy_cache/
 
-resources/
+/resources/
+/tests/resources/tmp/
+!/resources/boardlot.csv
+!/tests/resources/
 
 /.idea/
 /poor-trader-py.iml

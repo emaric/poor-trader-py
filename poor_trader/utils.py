@@ -1,8 +1,9 @@
 import os
-import re
-import numpy as np
-import pandas as pd
 import traceback
+
+import pandas as pd
+
+from poor_trader import config
 
 
 def makedirs(path):
@@ -10,37 +11,11 @@ def makedirs(path):
         print('Creating directory', path)
         os.makedirs(path)
 
-def load_trades(fpath=None):
-    columns = ['StartDate', 'EndDate', 'Symbol', 'BuyPrice', 'SellPrice',
-               'Shares', 'BuyValue', 'SellValue', 'TotalRisk', 'PnL', 'RMultiple',
-               'LastRecordDate', 'LastPrice', 'LastValue', 'LastPnL', 'LastRMultiple', 'OpenIndicator']
-    if fpath is None or not os.path.exists(fpath):
-        return pd.DataFrame(columns=columns)
-    else:
-        try:
-            df = pd.read_csv(fpath, index_col=0)
-            df['StartDate'] = pd.to_datetime(df['StartDate'])
-            df['EndDate'] = pd.to_datetime(df['EndDate'])
-            if 'CloseIndicator' not in df.columns:
-                df['CloseIndicator'] = ''
-            return df
-        except:
-            print(traceback.print_exc())
-            return pd.DataFrame(columns=columns)
-
 
 def load_equity_table(fpath):
     if os.path.exists(fpath):
         df = pd.read_csv(fpath, index_col=0, parse_dates=True)
         return df
-
-
-def load_quotes(symbol):
-    df = price_loader.load_price(symbol)
-    f_boardlot = lambda price : utils.boardlot(price)
-    df['BoardLot'] = df.Close.map(f_boardlot)
-    df = df.drop_duplicates(['Date'], keep='first')
-    return df
 
 
 def roundn(n, places=4):
@@ -65,11 +40,6 @@ def rindex(mylist, myvalue):
     return len(mylist) - mylist[::-1].index(myvalue) - 1
 
 
-def historical_volatility(df_quotes):
-    logreturns = np.log(df_quotes.Close / df_quotes.Close.shift(1))
-    return np.round(np.sqrt(252 * logreturns.var()), 1)
-
-
 def quotes_range(df_quotes):
     if len(df_quotes.index.values) == 0:
         return 'None'
@@ -84,3 +54,15 @@ def quotes_range(df_quotes):
         return '{}_to_{}'.format(start, end)
 
 
+def load_boardlot(boardlot_csv_path):
+    df = pd.read_csv(boardlot_csv_path)
+    df.index = df.StartPrice.values
+    return df
+
+
+def boardlot(price):
+    try:
+        df_boardlot = load_boardlot(config.BOARD_LOT_CSV_PATH)
+        return int(df_boardlot.loc[df_boardlot.StartPrice <= price].iloc[-1].BoardLot)
+    except:
+        return 0
