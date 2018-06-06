@@ -70,9 +70,7 @@ class EMA(IndicatorRunner):
             return df_indicator
         c = 2./(self.period + 1.)
         df = pd.DataFrame(columns=['EMA'], index=df_quotes.index)
-        _sma = self.factory.create(SMA, period=self.period, field=self.field).run(symbol, df_quotes)
-        if len(_sma.index.values) == 0:
-            print('ts')
+        _sma = self.factory.create(SMA, period=self.period, field=self.field).run(symbol, df_quotes).dropna()
         df.loc[_sma.index.values[0], 'EMA'] = _sma.SMA.values[0]
         for i in range(1, len(df_quotes)):
             prev_ema = df.iloc[i-1]
@@ -156,7 +154,7 @@ class ATRChannel(IndicatorRunner):
         df_top_atr = self.factory.create(ATR, period=self.top).run(symbol, df_quotes)
         df_bottom_atr = self.factory.create(ATR, period=self.bottom).run(symbol, df_quotes)
         df_sma = self.factory.create(SMA, period=self.sma).run(symbol, df_quotes)
-        df = df_indicator or pd.DataFrame(columns=['Top', 'Mid', 'Bottom'], index=df_quotes.index)
+        df = pd.DataFrame(columns=['Top', 'Mid', 'Bottom'], index=df_quotes.index)
         df['Mid'] = df_sma.SMA
         df['Top'] = df.Mid + df_top_atr.ATR
         df['Bottom'] = df.Mid - df_bottom_atr.ATR
