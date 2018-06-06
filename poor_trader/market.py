@@ -62,13 +62,18 @@ class DataFrameMarket(Market):
         else:
             return [_[:-len(suffix)] for _ in self.__df_historical_data__.filter(like=suffix).loc[date:date].dropna(axis=1).columns]
 
-    def get_quotes(self, date=None, symbol=None):
+    def get_quotes(self, date=None, symbol=None, start=None, end=None):
         df = self.__df_historical_data__.copy()
+        if start is not None:
+            df = df.loc[start:]
+        if end is not None:
+            df = df.loc[:end]
         if date is not None:
             df = df.loc[date:date]
         if symbol is not None:
             df = df.filter(regex='^{}_'.format(symbol))
             df.columns = [_.replace('{}_'.format(symbol), '') for _ in df.columns]
+            df = df.dropna()
         return df
 
     def __get_value_by_column__(self, column, date=None, symbol=None):
