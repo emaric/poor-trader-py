@@ -401,8 +401,7 @@ class PickleIndicatorRunnerWrapper(object):
 
         df = self.runner.run(symbol, df_quotes, df_indicator)
         save_path = self.get_save_path(symbol, df_quotes)
-        if not os.path.exists(save_path.parent):
-            os.makedirs(save_path.parent)
+        utils.makedirs(save_path.parent)
         df.to_pickle(save_path)
         return df
 

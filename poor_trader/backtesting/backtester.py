@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 
 import pandas as pd
@@ -60,6 +61,10 @@ class DataFrameBacktester(Backtester):
 
 
 class DataFramePortfolio(Portfolio):
+    EQUITY_CURVE_FILENAME = 'equity_curve.pkl'
+    POSITIONS_FILENAME = 'positions.pkl'
+    TRANSACTIONS_FILENAME = 'transactions.pkl'
+
     def __init__(self, account: Account,
                  indicators_dir_path,
                  market: Market,
@@ -140,11 +145,11 @@ class DataFramePortfolio(Portfolio):
                 lambda t: calculate_method(t[TransactionEnum.PRICE.value],
                                            t[TransactionEnum.SHARES.value]), axis=1)
 
-    def __add_long_tags__(self, open_transactions, strategy):
-        if not open_transactions.empty:
-            open_transactions[TransactionEnum.TAGS.value] = open_transactions.apply(
-                lambda t: ' '.join(strategy.get_long_indicator_names(t[TransactionEnum.DATE.value],
-                                                                     t[TransactionEnum.SYMBOL.value])), axis=1)
+    def __add_tags__(self, transactions, indicator_names_getter):
+        if not transactions.empty:
+            transactions[TransactionEnum.TAGS.value] = transactions.apply(
+                lambda t: ' '.join(indicator_names_getter(t[TransactionEnum.DATE.value],
+                                                          t[TransactionEnum.SYMBOL.value])), axis=1)
 
     def update_positions(self, new_transactions, direction, date=None):
         if new_transactions is not None and not new_transactions.empty:
@@ -202,7 +207,7 @@ class DataFramePortfolio(Portfolio):
                 while self.account.cash < open_transactions[TransactionEnum.VALUE.value].sum():
                     open_transactions = open_transactions[open_transactions[TransactionEnum.VALUE.value] > open_transactions[TransactionEnum.VALUE.value].min()]
                 if not open_transactions.empty:
-                    self.__add_long_tags__(open_transactions, strategy)
+                    self.__add_tags__(open_transactions, strategy.get_long_indicator_names)
                     self.transactions = self.transactions.append(open_transactions, ignore_index=True)
                     self.update_positions(open_transactions, Direction.LONG)
                     self.update_account(open_transactions)
@@ -219,6 +224,7 @@ class DataFramePortfolio(Portfolio):
             if not close_transactions.empty:
                 self.__apply_close_position_sizing__(close_transactions)
                 self.__apply_broker_values__(close_transactions, Action.CLOSE)
+                self.__add_tags__(close_transactions, self.strategies[0].get_short_indicator_names)
                 self.transactions = self.transactions.append(close_transactions, ignore_index=True)
                 self.update_positions(close_transactions, Direction.LONG)
                 self.update_account(close_transactions)
@@ -234,14 +240,36 @@ class DataFramePortfolio(Portfolio):
         self.equity_curve = utils.round_df(self.equity_curve)
 
     def update(self, date, symbols):
-        super().update(date, symbols)
-        self.update_positions(None, None, date)
-        self.update_account(pd.DataFrame(columns=TRANSACTION_COLUMNS))
-        self.update_equity_curve(date)
-        print(pd.to_datetime(date).strftime(config.DATE_FORMAT),
-              '{:>18.4f}'.format(self.get_equity(date)),
-              '{:>18.4f}'.format(self.get_cash(date)),
-              '{:>13.4f}'.format(self.get_drawdown_percent(date)))
+        if self.equity_curve.empty and os.path.exists(config.RESOURCES_PATH / self.name):
+            self.load(config.RESOURCES_PATH)
+
+        if self.equity_curve.empty or date > self.equity_curve.index.values[-1]:
+            super().update(date, symbols)
+            self.update_positions(None, None, date)
+            self.update_account(pd.DataFrame(columns=TRANSACTION_COLUMNS))
+            self.update_equity_curve(date)
+            self.save(config.RESOURCES_PATH)
+            print(pd.to_datetime(date).strftime(config.DATE_FORMAT),
+                  '{:>18.4f}'.format(self.get_equity(date)),
+                  '{:>18.4f}'.format(self.get_cash(date)),
+                  '{:>13.4f}'.format(self.get_drawdown_percent(date)))
+
+    def save(self, dir_path):
+        save_dir_path = dir_path / self.name
+        utils.makedirs(save_dir_path)
+        self.equity_curve.to_pickle(save_dir_path / self.EQUITY_CURVE_FILENAME)
+        self.positions.to_pickle(save_dir_path / self.POSITIONS_FILENAME)
+        self.transactions.to_pickle(save_dir_path / self.TRANSACTIONS_FILENAME)
+
+    def load(self, dir_path):
+        save_dir_path = dir_path / self.name
+        print('Loading portfolio data from {}...'.format(save_dir_path))
+        self.equity_curve = pd.read_pickle(save_dir_path / self.EQUITY_CURVE_FILENAME)
+        self.positions = pd.read_pickle(save_dir_path / self.POSITIONS_FILENAME)
+        self.transactions = pd.read_pickle(save_dir_path / self.TRANSACTIONS_FILENAME)
+        self.account.equity = self.equity_curve[EquityCurveEnum.EQUITY.value].values[-1]
+        self.account.cash = self.equity_curve[EquityCurveEnum.CASH.value].values[-1]
+        self.account.starting_balance = self.equity_curve[EquityCurveEnum.EQUITY.value].values[0]
 
     def get_positions(self):
         return self.positions
