@@ -16,17 +16,15 @@ class TestBacktesting(unittest.TestCase):
         self.market = csv_to_market('TestMarket', test_indicator.INTRADAY_HISTORICAL_DATA_PATH)
         self.account = Account(100000)
 
-        class TestPortfolio(DataFramePortfolio):
-            def __init_strategies__(self):
-                indicator_factory = PickleIndicatorFactory(test_indicator.TEMP_INDICATORS_PATH, self.market)
-                atr_channel_breakout = ATRChannelBreakout(indicator_factory, sma=10, fast=5, slow=10)
-                return [atr_channel_breakout]
+        indicator_factory = PickleIndicatorFactory(test_indicator.TEMP_INDICATORS_PATH, self.market)
+        atr_channel_breakout = ATRChannelBreakout(indicator_factory, sma=10, fast=5, slow=10)
 
-        self.portfolio = TestPortfolio(account=self.account,
-                                       indicators_dir_path=test_indicator.TEMP_INDICATORS_PATH,
-                                       market=self.market,
-                                       position_sizing=EquityPercentage(market=self.market),
-                                       broker=COLFinancial())
+        self.portfolio = DataFramePortfolio(account=self.account,
+                                            indicators_dir_path=test_indicator.TEMP_INDICATORS_PATH,
+                                            market=self.market,
+                                            position_sizing=EquityPercentage(market=self.market),
+                                            broker=COLFinancial(),
+                                            strategies=[atr_channel_breakout])
 
     def test_backtester(self):
         backtester = DataFrameBacktester(self.portfolio)
