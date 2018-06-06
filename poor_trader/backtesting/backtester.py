@@ -10,7 +10,7 @@ from poor_trader.backtesting.position_sizing import EquityPercentage
 from poor_trader.market import Market, pkl_to_market
 from poor_trader.screening.entity import Direction
 from poor_trader.screening.indicator import PickleIndicatorFactory
-from poor_trader.screening.strategy import Strategy
+from poor_trader.screening.strategy import Strategy, DonchianChannel
 
 
 class EquityCurveEnum(Enum):
@@ -293,16 +293,15 @@ class DataFramePortfolio(Portfolio):
 if __name__ == '__main__':
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
-    print('INDICATOR_PATH', INDICATORS_PATH)
 
     pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
-
-    account = Account(100000)
-    portfolio = DataFramePortfolio(account=account,
+    strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market))]
+    portfolio = DataFramePortfolio(account=Account(100000),
                                    indicators_dir_path=INDICATORS_PATH,
                                    market=pse_market,
                                    position_sizing=EquityPercentage(market=pse_market),
                                    broker=COLFinancial(),
+                                   strategies=strategies,
                                    name='Portfolio')
     default = DataFrameBacktester(portfolio)
     equity_curve = default.run(pse_market)
