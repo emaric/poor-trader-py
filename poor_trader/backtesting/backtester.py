@@ -71,12 +71,14 @@ class DataFramePortfolio(Portfolio):
     TRANSACTIONS_FILENAME = 'transactions.pkl'
 
     def __init__(self, account: Account,
+                 dir_path,
                  indicators_dir_path,
                  market: Market,
                  position_sizing: PositionSizing,
                  broker: Broker,
                  name=None, strategies=list()):
         super().__init__(account, name, strategies)
+        self.dir_path = dir_path
         self.indicators_dir_path = indicators_dir_path
         self.market = market
         self.position_sizing = position_sizing
@@ -204,7 +206,7 @@ class DataFramePortfolio(Portfolio):
     def open_positions(self, date, symbols):
         if self.account.cash > 0:
             for strategy in self.strategies:
-                long_symbols = [_ for _ in symbols if strategy.is_long(date, _)]
+                long_symbols = [_ for _ in symbols if strategy.is_long(date, _) and _ not in self.positions[PositionEnum.SYMBOL.value].values]
                 open_transactions = self.open(date, long_symbols)
                 self.__apply_open_position_sizing__(open_transactions)
                 self.__apply_boardlot__(open_transactions)
@@ -256,15 +258,15 @@ class DataFramePortfolio(Portfolio):
         self.equity_curve = utils.round_df(self.equity_curve)
 
     def update(self, date, symbols):
-        if self.equity_curve.empty and os.path.exists(config.RESOURCES_PATH / self.name):
-            self.load(config.RESOURCES_PATH)
+        if self.equity_curve.empty and os.path.exists(self.dir_path / self.name):
+            self.load(self.dir_path)
 
         if self.equity_curve.empty or date > self.equity_curve.index.values[-1]:
             super().update(date, symbols)
             self.update_positions(None, None, date)
             self.update_account(pd.DataFrame(columns=TRANSACTION_COLUMNS))
             self.update_equity_curve(date)
-            self.save(config.RESOURCES_PATH)
+            self.save(self.dir_path)
             print(pd.to_datetime(date).strftime(config.DATE_FORMAT),
                   '{:>18.4f}'.format(self.get_equity(date)),
                   '{:>18.4f}'.format(self.get_cash(date)),
@@ -313,6 +315,7 @@ if __name__ == '__main__':
     pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
     strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market))]
     portfolio = DataFramePortfolio(account=Account(1000000),
+                                   dir_path=config.RESOURCES_PATH,
                                    indicators_dir_path=INDICATORS_PATH,
                                    market=pse_market,
                                    position_sizing=EquityPercentage(market=pse_market),
