@@ -38,12 +38,10 @@ class Indicator(object):
 
     def is_long(self, date=None, symbol=None):
         value = self.get_attribute_value(date, symbol)
-        assert isinstance(value, Direction)
         return value == Direction.LONG
 
     def is_short(self, date=None, symbol=None):
         value = self.get_attribute_value(date, symbol)
-        assert isinstance(value, Direction)
         return value == Direction.SHORT
 
 

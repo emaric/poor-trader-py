@@ -430,6 +430,8 @@ class Attribute(entity.Attribute):
     def get_value(self, date=None, symbol=None):
         df = self.df_values
         if date is not None:
+            if date not in df.index:
+                return None
             df = df.loc[date]
         if symbol is not None:
             return df[symbol]
