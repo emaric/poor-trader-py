@@ -19,27 +19,27 @@ class Market(object):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_open(self, date=None, symbol=None):
+    def get_open(self, date=None, symbol=None, start=None, end=None):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_high(self, date=None, symbol=None):
+    def get_high(self, date=None, symbol=None, start=None, end=None):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_low(self, date=None, symbol=None):
+    def get_low(self, date=None, symbol=None, start=None, end=None):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_close(self, date=None, symbol=None):
+    def get_close(self, date=None, symbol=None, start=None, end=None):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_volume(self, date=None, symbol=None):
+    def get_volume(self, date=None, symbol=None, start=None, end=None):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_quotes(self, date=None, symbol=None):
+    def get_quotes(self, date=None, symbol=None, start=None, end=None):
         raise NotImplementedError
 
 
@@ -76,26 +76,26 @@ class DataFrameMarket(Market):
             df = df.dropna()
         return df
 
-    def __get_value_by_column__(self, column, date=None, symbol=None):
-        df = self.get_quotes(date, symbol).filter(like=column)
+    def __get_value_by_column__(self, column, date=None, symbol=None, start=None, end=None):
+        df = self.get_quotes(date=date, symbol=symbol, start=start, end=end).filter(like=column)
         if len(df.columns) == 1 and len(df.index.values) == 1:
             return df.iloc[0][column]
         return df
 
-    def get_open(self, date=None, symbol=None):
-        return self.__get_value_by_column__('Open', date=date, symbol=symbol)
+    def get_open(self, date=None, symbol=None, start=None, end=None):
+        return self.__get_value_by_column__('Open', date=date, symbol=symbol, start=start, end=end)
 
-    def get_high(self, date=None, symbol=None):
-        return self.__get_value_by_column__('High', date=date, symbol=symbol)
+    def get_high(self, date=None, symbol=None, start=None, end=None):
+        return self.__get_value_by_column__('High', date=date, symbol=symbol, start=start, end=end)
 
-    def get_low(self, date=None, symbol=None):
-        return self.__get_value_by_column__('Low', date=date, symbol=symbol)
+    def get_low(self, date=None, symbol=None, start=None, end=None):
+        return self.__get_value_by_column__('Low', date=date, symbol=symbol, start=start, end=end)
 
-    def get_close(self, date=None, symbol=None):
-        return self.__get_value_by_column__('Close', date=date, symbol=symbol)
+    def get_close(self, date=None, symbol=None, start=None, end=None):
+        return self.__get_value_by_column__('Close', date=date, symbol=symbol, start=start, end=end)
 
-    def get_volume(self, date=None, symbol=None):
-        return self.__get_value_by_column__('Volume', date=date, symbol=symbol)
+    def get_volume(self, date=None, symbol=None, start=None, end=None):
+        return self.__get_value_by_column__('Volume', date=date, symbol=symbol, start=start, end=end)
 
 
 def csv_to_market(name, csv_path):

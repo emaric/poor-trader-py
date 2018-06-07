@@ -33,14 +33,18 @@ class Indicator(object):
     def get_attributes(self):
         return self.attributes
 
-    def get_attribute_value(self, date=None, symbol=None):
-        return self.get_attribute('Direction').get_value(date, symbol)
+    def get_attribute_value(self, date=None, symbol=None, key='Direction'):
+        return self.get_attribute(key).get_value(date, symbol)
 
     def is_long(self, date=None, symbol=None):
-        return self.get_attribute_value(date, symbol) == Direction.LONG
+        value = self.get_attribute_value(date, symbol)
+        assert isinstance(value, Direction)
+        return value == Direction.LONG
 
     def is_short(self, date=None, symbol=None):
-        return self.get_attribute_value(date, symbol) == Direction.SHORT
+        value = self.get_attribute_value(date, symbol)
+        assert isinstance(value, Direction)
+        return value == Direction.SHORT
 
 
 class Strategy(object):

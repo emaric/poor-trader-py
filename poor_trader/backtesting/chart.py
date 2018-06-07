@@ -7,7 +7,7 @@ from matplotlib import pylab as plt
 from matplotlib.finance import candlestick_ohlc
 import matplotlib.dates as mdates
 
-from poor_trader import config
+from poor_trader import config, utils
 from poor_trader.market import pkl_to_market
 from poor_trader.screening import indicator
 
@@ -62,7 +62,7 @@ def generate_equity_chart(df_equity_curve, fpath, title='Equity Curve'):
 
 
 def date2num(df):
-    df.Date = df.Date.map(mdates.date2num)
+    df.Date = pd.to_datetime(df.Date).map(mdates.date2num)
     return df
 
 
@@ -82,8 +82,9 @@ def to_dohlc(df_quotes, start_date=None, end_date=None):
     return date2num(df_ohlc)
 
 
-def ohlc_chart(df_dohlc, title='chart', save_path=None, open_close_line=None,
-               volume=None, slsma=None, bollinger_band=None, donchian_channel=None, macd=None, trailing_stops=None, ma_cross=None, trend_strength_indicator=None):
+def ohlc_chart(df_dohlc, title='chart', save_path=None, open_close_line_list=list(),
+               volume=None, slsma=None, bollinger_band=None, donchian_channel=None,
+               macd=None, trailing_stops=None, ma_cross=None, trend_strength_indicator=None, size_pct=1):
     quotes = df_dohlc.values
     weekday_quotes = [tuple([i] + list(quote[1:])) for i, quote in enumerate(quotes)]
 
@@ -117,12 +118,12 @@ def ohlc_chart(df_dohlc, title='chart', save_path=None, open_close_line=None,
         ax1.fill_between(range(len(donchian_channel)), donchian_channel.High.values, donchian_channel.Low.values, color='#9160d1', alpha=0.1)
 
     if trailing_stops is not None:
-        ax1.plot(range(len(trailing_stops)), trailing_stops.BuyStops, 'rv', markersize=6)
-        ax1.plot(range(len(trailing_stops)), trailing_stops.SellStops, 'g^', markersize=6)
+        ax1.plot(range(len(trailing_stops)), trailing_stops.BuyStops, 'rv', markersize=6 * size_pct)
+        ax1.plot(range(len(trailing_stops)), trailing_stops.SellStops, 'g^', markersize=6 * size_pct)
 
     if ma_cross is not None:
-        ax1.plot(ma_cross.FastSMA.values, linewidth=8, color='#3af8ff', alpha=0.6)
-        ax1.plot(ma_cross.SlowSMA.values, linewidth=8, color='#bd3aff', alpha=0.6)
+        ax1.plot(ma_cross.FastSMA.values, linewidth=8 * size_pct, color='#3af8ff', alpha=0.6)
+        ax1.plot(ma_cross.SlowSMA.values, linewidth=8 * size_pct, color='#bd3aff', alpha=0.6)
 
     if slsma is not None:
         ax1.plot(slsma.S_FastSMA.values, linewidth=2, color='#ff9900')
@@ -176,20 +177,24 @@ def ohlc_chart(df_dohlc, title='chart', save_path=None, open_close_line=None,
         ax2.set_ylabel('Volume')
         plt.xticks(rotation=90)
 
-    if open_close_line is not None:
-        buy_index = open_close_line.OpenIndex
-        sell_index = open_close_line.CloseIndex
+    for open_close_line in open_close_line_list:
+        open_datenum = np.round(mdates.date2num(pd.to_datetime(open_close_line.OpenIndex)), 6)
+        close_datenum = np.round(mdates.date2num(pd.to_datetime(open_close_line.CloseIndex)), 6)
+        df_dohlc['Date'] = np.round(df_dohlc['Date'], 6)
+        buy_index = df_dohlc[df_dohlc['Date'] == open_datenum].index
+        sell_index = df_dohlc[df_dohlc['Date'] == close_datenum].index
         buy = open_close_line.OpenPrice
         sell = open_close_line.ClosePrice
         marker_space = (max(df_dohlc.High.values) - min(df_dohlc.Low.values)) / 10
 
-        ax1.plot((buy_index, sell_index), (buy, sell), 'o-', color='{}'.format('#ff00fa' if buy >= sell else '#21ff24'), linewidth=3, markersize=6)
-        ax1.plot((buy_index), (buy - marker_space), color='#21ff24', marker='^', markersize=12, markeredgecolor='black')
-        ax1.plot((sell_index), (sell + marker_space), color='#ff00fa', marker='v', markersize=12, markeredgecolor='black')
+        ax1.plot((buy_index, sell_index), (buy, sell), 'o-', color='{}'.format('#ff00fa' if buy >= sell else '#21ff24'), linewidth=3 * size_pct, markersize=6 * size_pct)
+        ax1.plot(buy_index, (buy - marker_space), color='#21ff24', marker='^', markersize=12 * size_pct, markeredgecolor='black', markeredgewidth=1 * size_pct)
+        ax1.plot(sell_index, (sell + marker_space), color='#ff00fa', marker='v', markersize=12 * size_pct, markeredgecolor='black', markeredgewidth=1 * size_pct)
 
     plt.tight_layout()
 
     if save_path:
+        utils.makedirs(save_path.parent)
         plt.savefig(save_path)
     else:
         plt.show()

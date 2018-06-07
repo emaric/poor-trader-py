@@ -3,7 +3,7 @@ from poor_trader.backtesting.entity import PositionSizing
 
 
 class EquityPercentage(PositionSizing):
-    def __init__(self, market: Market, total_risk_pct=0.02, unit_risk=0.2, name=None):
+    def __init__(self, market: Market, total_risk_pct=0.01, unit_risk=0.2, name=None):
         super().__init__(name or self.__class__.__name__)
         self.market = market
         self.total_risk_pct = total_risk_pct

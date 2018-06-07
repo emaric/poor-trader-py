@@ -58,10 +58,10 @@ class DataFrameBacktester(Backtester):
             symbols = market.get_symbols(date)
             self.portfolio.update(date, symbols)
             df.loc[date] = pd.Series()
-            df.loc[date][EquityCurveEnum.EQUITY.value] = self.portfolio.get_equity(date)
-            df.loc[date][EquityCurveEnum.CASH.value] = self.portfolio.get_cash(date)
-            df.loc[date][EquityCurveEnum.DRAWDOWN.value] = self.portfolio.get_drawdown(date)
-            df.loc[date][EquityCurveEnum.DRAWDOWN_PERCENT.value] = self.portfolio.get_drawdown_percent(date)
+            df.loc[date, EquityCurveEnum.EQUITY.value] = self.portfolio.get_equity(date)
+            df.loc[date, EquityCurveEnum.CASH.value] = self.portfolio.get_cash(date)
+            df.loc[date, EquityCurveEnum.DRAWDOWN.value] = self.portfolio.get_drawdown(date)
+            df.loc[date, EquityCurveEnum.DRAWDOWN_PERCENT.value] = self.portfolio.get_drawdown_percent(date)
         return utils.round_df(df)
 
 
@@ -83,7 +83,7 @@ class DataFramePortfolio(Portfolio):
         self.market = market
         self.position_sizing = position_sizing
         self.broker = broker
-        self.strategies = self.__init_strategies__()
+        self.strategies = strategies if len(strategies) > 0 else self.__init_strategies__()
         self.positions = pd.DataFrame(columns=POSITION_COLUMNS)
         self.transactions = pd.DataFrame(columns=TRANSACTION_COLUMNS)
         self.equity_curve = pd.DataFrame(columns=EQUITY_CURVE_COLUMNS)
@@ -189,7 +189,7 @@ class DataFramePortfolio(Portfolio):
 
         if date is not None and not self.positions.empty:
             self.positions[PositionEnum.PRICE.value] = self.positions.apply(
-                lambda p: self.market.get_close(date, p[PositionEnum.SYMBOL.value]), axis=1)
+                lambda p: self.market.get_close(end=date, symbol=p[PositionEnum.SYMBOL.value]).dropna().values[-1], axis=1)
             self.positions[PositionEnum.VALUE.value] = self.positions.apply(
                 lambda p: self.broker.calculate_sell_value(p[PositionEnum.PRICE.value], p[PositionEnum.SHARES.value]), axis=1)
         self.__remove_empty_positions__()
@@ -205,8 +205,11 @@ class DataFramePortfolio(Portfolio):
 
     def open_positions(self, date, symbols):
         if self.account.cash > 0:
+            closed_symbols = self.transactions[(pd.to_datetime(self.transactions[TransactionEnum.DATE.value]) == pd.to_datetime(date))
+                                               & (self.transactions[TransactionEnum.ACTION.value] == Action.CLOSE)][TransactionEnum.SYMBOL.value].values
+            open_symbols = self.positions[PositionEnum.SYMBOL.value].values
             for strategy in self.strategies:
-                long_symbols = [_ for _ in symbols if strategy.is_long(date, _) and _ not in self.positions[PositionEnum.SYMBOL.value].values]
+                long_symbols = [_ for _ in symbols if strategy.is_long(date, _) and _ not in self.positions[PositionEnum.SYMBOL.value].values and _ not in closed_symbols and _ not in open_symbols]
                 open_transactions = self.open(date, long_symbols)
                 self.__apply_open_position_sizing__(open_transactions)
                 self.__apply_boardlot__(open_transactions)
@@ -227,14 +230,15 @@ class DataFramePortfolio(Portfolio):
     def close_positions(self, date, symbols):
         if not self.positions.empty:
             open_symbols = [_ for _ in symbols if _ in self.positions[PositionEnum.SYMBOL.value].values]
-            close_transactions = self.close(date, open_symbols)
-            if not close_transactions.empty:
-                self.__apply_close_position_sizing__(close_transactions)
-                self.__apply_broker_values__(close_transactions, Action.CLOSE)
-                self.__add_tags__(close_transactions, self.strategies[0].get_short_indicator_names)
-                self.transactions = self.transactions.append(close_transactions, ignore_index=True)
-                self.update_positions(close_transactions, Direction.LONG)
-                self.update_account(close_transactions)
+            for strategy in self.strategies:
+                close_transactions = self.close(date, [_ for _ in open_symbols if strategy.is_short(date=date, symbol=_)])
+                if not close_transactions.empty:
+                    self.__apply_close_position_sizing__(close_transactions)
+                    self.__apply_broker_values__(close_transactions, Action.CLOSE)
+                    self.__add_tags__(close_transactions, strategy.get_short_indicator_names)
+                    self.transactions = self.transactions.append(close_transactions, ignore_index=True)
+                    self.update_positions(close_transactions, Direction.LONG)
+                    self.update_account(close_transactions)
 
     def update_equity_curve(self, date):
         if self.equity_curve.empty:
@@ -323,5 +327,5 @@ if __name__ == '__main__':
                                    strategies=strategies,
                                    name='Portfolio')
     default = DataFrameBacktester(portfolio)
-    equity_curve = default.run(pse_market, start=datetime.datetime.strptime('2015-01-01', config.DATE_FORMAT))
+    equity_curve = default.run(pse_market, start=pd.to_datetime('2015-01-01'))
     print(equity_curve)

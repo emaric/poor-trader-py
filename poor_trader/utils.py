@@ -66,3 +66,7 @@ def boardlot(price):
         return int(df_boardlot.loc[df_boardlot.StartPrice <= price].iloc[-1].BoardLot)
     except:
         return 0
+
+
+def to_enum(series, enum_class):
+    return series.apply(lambda v: enum_class[v.replace(enum_class.__name__ + '.', '')])
