@@ -105,3 +105,5 @@ ENV/
 
 /.idea/
 /poor-trader-py.iml
+/.vscode/
+.vscode/
