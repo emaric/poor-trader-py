@@ -4,6 +4,7 @@ import os
 
 from poor_trader.screening import indicator
 from poor_trader import market, config
+from poor_trader.screening.entity import Direction
 from poor_trader.screening.indicator import PickleIndicatorFactory, IndicatorRunnerFactory, PickleIndicatorRunnerFactory
 
 TEMP_INDICATORS_PATH = config.TEST_TEMP_PATH / 'indicators'
@@ -40,7 +41,7 @@ class TestIndicator(unittest.TestCase):
         ema = factory.create(indicator.EMA, period=2)
         symbol = self.market.get_symbols()[0]
         df_ema = ema.run(symbol, self.market.get_quotes(symbol=symbol))
-        self.assertEqual(' '.join(['EMA', 'Direction']), ' '.join(df_ema.columns))
+        self.assertEqual(' '.join(['EMA', Direction.__name__]), ' '.join(df_ema.columns))
 
     def test_pickle_indicator_runner_factory(self):
         factory = PickleIndicatorRunnerFactory(TEMP_INDICATORS_PATH)
@@ -72,7 +73,7 @@ class TestIndicatorRunner(unittest.TestCase):
             _indicator = factory.create(runner_class)
             expected_dir_path = TEMP_INDICATORS_PATH /_indicator.name
             self.assertTrue(os.path.exists(expected_dir_path))
-            self.assertIsNotNone(_indicator.get_attribute('Direction'), msg=runner_class.__name__)
+            self.assertIsNotNone(_indicator.get_attribute(Direction.__name__), msg=runner_class.__name__)
 
 
 if __name__ == '__main__':

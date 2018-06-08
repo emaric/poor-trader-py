@@ -39,8 +39,8 @@ class DataFrameScreener(Screener):
     @staticmethod
     def collect_symbols(s_attribute_values, direction):
         df = pd.DataFrame()
-        df['Direction'] = s_attribute_values
-        df = df[df['Direction'] == direction]
+        df[Direction.__name__] = s_attribute_values
+        df = df[df[Direction.__name__] == direction]
         return df.index.values
 
     def scan(self, start=None, end=None):
@@ -48,7 +48,7 @@ class DataFrameScreener(Screener):
         df_long = pd.DataFrame()
         df_short = pd.DataFrame()
         for _indicator in indicators:
-            df_values = _indicator.get_attribute('Direction').get_value()[-5:]
+            df_values = _indicator.get_attribute(Direction.__name__).get_value()[-5:]
             df_long[_indicator.name] = df_values.apply(lambda s_values: ' '.join(self.collect_symbols(s_values, Direction.LONG)), axis=1)
             df_short[_indicator.name] = df_values.apply(lambda s_values: ' '.join(self.collect_symbols(s_values, Direction.SHORT)), axis=1)
         return df_long, df_short

@@ -9,6 +9,7 @@ from path import Path
 from poor_trader.market import Market, pkl_to_market
 from poor_trader.screening import entity
 from poor_trader import config, utils
+from poor_trader.screening.entity import Direction
 
 
 class IndicatorRunnerFactory(object):
@@ -34,7 +35,7 @@ class IndicatorRunner(object):
 
     @staticmethod
     def add_direction(df, long_condition, short_condition):
-        df['Direction'] = np.where(long_condition, entity.Direction.LONG,
+        df[Direction.__name__] = np.where(long_condition, entity.Direction.LONG,
                                    np.where(short_condition, entity.Direction.SHORT, ''))
 
     @staticmethod
