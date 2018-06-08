@@ -26,7 +26,8 @@ class OpenCloseLineObject(ChartObject):
 class OpenCloseSubplot(Subplot):
     class Config(object):
         def __init__(self, loss_color='#ff00fa', win_color='#21ff24', open_marker='^', close_marker='v',
-                     linewidth=1, marker_size=2, marker_edge_width=0.2, marker_edge_color='black', point_shape='o-'):
+                     linewidth=1, marker_size=2, marker_edge_width=0.2, marker_edge_color='black', point_shape='o-',
+                     line_style='-', open_line_style='--'):
             self.loss_color = loss_color
             self.win_color = win_color
             self.open_marker = open_marker
@@ -36,6 +37,8 @@ class OpenCloseSubplot(Subplot):
             self.marker_edge_color = marker_edge_color
             self.point_shape = point_shape
             self.marker_edge_width = marker_edge_width
+            self.line_style = line_style
+            self.open_line_style = open_line_style
 
     def __init__(self, quotes_chart_item: QuoteChartItem, open_close_objects: OpenCloseLineObject, config=Config(), location=0):
         super().__init__(quotes_chart_item, location)
@@ -60,7 +63,8 @@ class OpenCloseSubplot(Subplot):
             marker_space = (high - low) / 30
 
             subplot.plot((open_position, close_position), (open_price, close_price),
-                         self.config.point_shape, linewidth=self.config.line_width, markersize=self.config.marker_size * 0.8,
+                         '{}{}'.format(self.config.point_shape, self.config.line_style if close_index else self.config.open_line_style),
+                         linewidth=self.config.line_width, markersize=self.config.marker_size * 0.8,
                          color='{}'.format(self.config.loss_color if open_price >= close_price else self.config.win_color))
             subplot.plot(open_position, (open_price - marker_space),
                          color=self.config.win_color, marker=self.config.open_marker,
@@ -139,11 +143,11 @@ if __name__ == '__main__':
     donchian = factory.create(DonchianChannel)
     macross = factory.create(MACross)
 
-    symbols = set(df[TransactionKey.SYMBOL.value].values)
+    symbols = symbol_oc_line_items.keys()
     for symbol in symbols:
         df_symbol_transactions = df[df[TransactionKey.SYMBOL.value] == symbol]
         start = df_symbol_transactions[TransactionKey.DATE.value].min()
-        end = df_symbol_transactions[TransactionKey.DATE.value].max()
+        end = None
         df_quotes = market.get_quotes(symbol=symbol, start=start, end=end)
 
         quote_chart_item = df_to_quote_chart_item(df_quotes, OHLC)

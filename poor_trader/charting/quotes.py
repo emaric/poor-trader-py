@@ -151,6 +151,7 @@ def create(quotes: CandlestickSubplot, *subplots: Subplot, title='', save_path=N
 
     if save_path:
         utils.makedirs(save_path.parent)
+        print('Saving chart', save_path)
         plt.savefig(save_path)
     else:
         plt.show()
