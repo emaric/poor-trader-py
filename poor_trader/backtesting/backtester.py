@@ -8,17 +8,12 @@ from poor_trader import config, utils
 from poor_trader.backtesting.broker import COLFinancial
 from poor_trader.backtesting.entity import Backtester, Portfolio, Account, PositionSizing, Broker, Action
 from poor_trader.backtesting.position_sizing import EquityPercentage
+from poor_trader.charting import equity_curve as charting_equity_curve
+from poor_trader.charting.entity import EquityCurveChart, EquityCurveItem, EquityCurveKey
 from poor_trader.market import Market, pkl_to_market
 from poor_trader.screening.entity import Direction
 from poor_trader.screening.indicator import PickleIndicatorFactory
 from poor_trader.screening.strategy import Strategy, DonchianChannel
-
-
-class EquityCurveEnum(Enum):
-    EQUITY = 'Equity'
-    CASH = 'Cash'
-    DRAWDOWN = 'Drawdown'
-    DRAWDOWN_PERCENT = 'DrawdownPercent'
 
 
 class TransactionEnum(Enum):
@@ -39,7 +34,7 @@ class PositionEnum(Enum):
     VALUE = 'Value'
 
 
-EQUITY_CURVE_COLUMNS = [_.value for _ in EquityCurveEnum]
+EQUITY_CURVE_COLUMNS = [_.value for _ in EquityCurveKey]
 TRANSACTION_COLUMNS = [_.value for _ in TransactionEnum]
 POSITION_COLUMNS = [_.value for _ in PositionEnum]
 
@@ -58,10 +53,10 @@ class DataFrameBacktester(Backtester):
             symbols = market.get_symbols(date)
             self.portfolio.update(date, symbols)
             df.loc[date] = pd.Series()
-            df.loc[date, EquityCurveEnum.EQUITY.value] = self.portfolio.get_equity(date)
-            df.loc[date, EquityCurveEnum.CASH.value] = self.portfolio.get_cash(date)
-            df.loc[date, EquityCurveEnum.DRAWDOWN.value] = self.portfolio.get_drawdown(date)
-            df.loc[date, EquityCurveEnum.DRAWDOWN_PERCENT.value] = self.portfolio.get_drawdown_percent(date)
+            df.loc[date, EquityCurveKey.EQUITY.value] = self.portfolio.get_equity(date)
+            df.loc[date, EquityCurveKey.CASH.value] = self.portfolio.get_cash(date)
+            df.loc[date, EquityCurveKey.DRAWDOWN.value] = self.portfolio.get_drawdown(date)
+            df.loc[date, EquityCurveKey.DRAWDOWN_PERCENT.value] = self.portfolio.get_drawdown_percent(date)
         return utils.round_df(df)
 
 
@@ -244,20 +239,20 @@ class DataFramePortfolio(Portfolio):
         if self.equity_curve.empty:
             index = pd.to_datetime(date) - datetime.timedelta(days=1)
             self.equity_curve.loc[index] = pd.Series()
-            self.equity_curve.loc[index, EquityCurveEnum.EQUITY.value] = self.account.starting_balance
-            self.equity_curve.loc[index, EquityCurveEnum.CASH.value] = self.account.starting_balance
+            self.equity_curve.loc[index, EquityCurveKey.EQUITY.value] = self.account.starting_balance
+            self.equity_curve.loc[index, EquityCurveKey.CASH.value] = self.account.starting_balance
             self.equity_curve = self.equity_curve.fillna(0)
             print(index.strftime(config.DATE_FORMAT),
-                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveEnum.EQUITY.value]),
-                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveEnum.CASH.value]),
-                  '{:>13.4f}'.format(self.equity_curve.loc[index][EquityCurveEnum.DRAWDOWN_PERCENT.value]))
+                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveKey.EQUITY.value]),
+                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveKey.CASH.value]),
+                  '{:>13.4f}'.format(self.equity_curve.loc[index][EquityCurveKey.DRAWDOWN_PERCENT.value]))
 
         self.equity_curve.loc[date] = pd.Series()
-        self.equity_curve.loc[date, EquityCurveEnum.EQUITY.value] = self.account.equity
-        self.equity_curve.loc[date, EquityCurveEnum.CASH.value] = self.account.cash
-        self.equity_curve[EquityCurveEnum.DRAWDOWN.value] = self.equity_curve[EquityCurveEnum.EQUITY.value].expanding(1).apply(
+        self.equity_curve.loc[date, EquityCurveKey.EQUITY.value] = self.account.equity
+        self.equity_curve.loc[date, EquityCurveKey.CASH.value] = self.account.cash
+        self.equity_curve[EquityCurveKey.DRAWDOWN.value] = self.equity_curve[EquityCurveKey.EQUITY.value].expanding(1).apply(
                                                             lambda d: -(d.max()-d[-1]))
-        self.equity_curve[EquityCurveEnum.DRAWDOWN_PERCENT.value] = self.equity_curve[EquityCurveEnum.EQUITY.value].expanding(1).apply(
+        self.equity_curve[EquityCurveKey.DRAWDOWN_PERCENT.value] = self.equity_curve[EquityCurveKey.EQUITY.value].expanding(1).apply(
                                                                     lambda d: -(100 * (d.max()-d[-1]) / d.max()))
         self.equity_curve = utils.round_df(self.equity_curve)
 
@@ -289,9 +284,9 @@ class DataFramePortfolio(Portfolio):
         self.equity_curve = pd.read_pickle(save_dir_path / self.EQUITY_CURVE_FILENAME)
         self.positions = pd.read_pickle(save_dir_path / self.POSITIONS_FILENAME)
         self.transactions = pd.read_pickle(save_dir_path / self.TRANSACTIONS_FILENAME)
-        self.account.equity = self.equity_curve[EquityCurveEnum.EQUITY.value].values[-1]
-        self.account.cash = self.equity_curve[EquityCurveEnum.CASH.value].values[-1]
-        self.account.starting_balance = self.equity_curve[EquityCurveEnum.EQUITY.value].values[0]
+        self.account.equity = self.equity_curve[EquityCurveKey.EQUITY.value].values[-1]
+        self.account.cash = self.equity_curve[EquityCurveKey.CASH.value].values[-1]
+        self.account.starting_balance = self.equity_curve[EquityCurveKey.EQUITY.value].values[0]
 
     def get_positions(self):
         return self.positions
@@ -300,16 +295,24 @@ class DataFramePortfolio(Portfolio):
         return self.transactions
 
     def get_equity(self, date):
-        return self.equity_curve.loc[date][EquityCurveEnum.EQUITY.value]
+        return self.equity_curve.loc[date][EquityCurveKey.EQUITY.value]
 
     def get_cash(self, date):
-        return self.equity_curve.loc[date][EquityCurveEnum.CASH.value]
+        return self.equity_curve.loc[date][EquityCurveKey.CASH.value]
 
     def get_drawdown(self, date):
-        return self.equity_curve.loc[date][EquityCurveEnum.DRAWDOWN.value]
+        return self.equity_curve.loc[date][EquityCurveKey.DRAWDOWN.value]
 
     def get_drawdown_percent(self, date):
-        return self.equity_curve.loc[date][EquityCurveEnum.DRAWDOWN_PERCENT.value]
+        return self.equity_curve.loc[date][EquityCurveKey.DRAWDOWN_PERCENT.value]
+
+
+def create_equity_chart(df_equity_curve, fpath=None):
+    items = df_equity_curve.apply(lambda d: EquityCurveItem(*[d[_.value] for _ in EquityCurveKey]), axis=1)
+    chart_data = EquityCurveChart(indices=df_equity_curve.index.values,
+                                  equity_curve_items=items,
+                                  index_labels=[pd.to_datetime(_).strftime(config.DATE_FORMAT) for _ in df_equity_curve.index.values])
+    charting_equity_curve.create(chart_data, fpath=fpath)
 
 
 if __name__ == '__main__':
@@ -318,14 +321,13 @@ if __name__ == '__main__':
 
     pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
     strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market))]
-    portfolio = DataFramePortfolio(account=Account(1000000),
-                                   dir_path=config.RESOURCES_PATH,
-                                   indicators_dir_path=INDICATORS_PATH,
-                                   market=pse_market,
-                                   position_sizing=EquityPercentage(market=pse_market),
-                                   broker=COLFinancial(),
-                                   strategies=strategies,
+    portfolio = DataFramePortfolio(account=Account(1000000), dir_path=config.RESOURCES_PATH, indicators_dir_path=INDICATORS_PATH,
+                                   market=pse_market, position_sizing=EquityPercentage(market=pse_market),
+                                   broker=COLFinancial(), strategies=strategies,
                                    name='Portfolio')
     default = DataFrameBacktester(portfolio)
     equity_curve = default.run(pse_market, start=pd.to_datetime('2015-01-01'))
+    equity_curve = utils.round_df(equity_curve, 2)
     print(equity_curve)
+    create_equity_chart(equity_curve)
+    #portfolio.save_charts(config.RESOURCES_PATH / '{}_charts'.format(portfolio.name))

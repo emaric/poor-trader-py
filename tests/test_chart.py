@@ -7,7 +7,7 @@ from path import Path
 from poor_trader import config, utils
 from poor_trader.backtesting import chart
 from poor_trader.backtesting.backtester import TransactionEnum
-from poor_trader.backtesting.chart import TradeEnum
+from poor_trader.backtesting.chart import OpenCloseLine
 from poor_trader.backtesting.entity import Action
 from poor_trader.market import csv_to_market
 from poor_trader.screening.indicator import MACross, ATRChannel
@@ -45,10 +45,10 @@ class TestChart(unittest.TestCase):
                 for open_i in df_opens.index.values:
                     s_open = df_opens.loc[open_i]
                     s_close = df_symbol_transactions.loc[close_i]
-                    open_close_lines.append(pd.Series({TradeEnum.OPEN_INDEX.value: s_open[TransactionEnum.DATE.value],
-                                                       TradeEnum.CLOSE_INDEX.value: s_close[TransactionEnum.DATE.value],
-                                                       TradeEnum.OPEN_PRICE.value: s_open[TransactionEnum.PRICE.value],
-                                                       TradeEnum.CLOSE_PRICE.value: s_close[TransactionEnum.PRICE.value]}))
+                    open_close_lines.append(pd.Series({OpenCloseLine.OPEN_INDEX.value: s_open[TransactionEnum.DATE.value],
+                                                       OpenCloseLine.CLOSE_INDEX.value: s_close[TransactionEnum.DATE.value],
+                                                       OpenCloseLine.OPEN_PRICE.value: s_open[TransactionEnum.PRICE.value],
+                                                       OpenCloseLine.CLOSE_PRICE.value: s_close[TransactionEnum.PRICE.value]}))
             print(df_symbol_transactions)
             df_ma_cross = MACross(fast=5, slow=10).run(symbol, self.market.get_quotes(symbol=symbol))
             df_atr_channel = ATRChannel(top=7, bottom=3, sma=10).run(symbol, self.market.get_quotes(symbol=symbol))

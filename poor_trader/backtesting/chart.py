@@ -203,7 +203,7 @@ def ohlc_chart(df_dohlc, title='chart', save_path=None, open_close_line_list=lis
     plt.close(fig)
 
 
-class TradeEnum(Enum):
+class OpenCloseLine(Enum):
     OPEN_INDEX = 'OpenIndex'
     CLOSE_INDEX = 'CloseIndex'
     OPEN_PRICE = 'OpenPrice'

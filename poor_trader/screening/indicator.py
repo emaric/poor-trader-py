@@ -1,11 +1,12 @@
 import abc
 import os
+from enum import Enum
 
 import numpy as np
 import pandas as pd
 from path import Path
 
-from poor_trader.market import Market
+from poor_trader.market import Market, pkl_to_market
 from poor_trader.screening import entity
 from poor_trader import config, utils
 
@@ -220,6 +221,11 @@ class TrailingStops(IndicatorRunner):
 
 
 class DonchianChannel(IndicatorRunner):
+    class Columns(Enum):
+        HIGH = 'High'
+        MID = 'Mid'
+        LOW = 'Low'
+
     def __init__(self, name='DonchianChannel', high=50, low=50):
         super().__init__(name, 'donchian_channel_{}_{}'.format(high, low))
         self.high = high
@@ -229,10 +235,10 @@ class DonchianChannel(IndicatorRunner):
         if self.is_updated(df_quotes, df_indicator):
             return df_indicator
 
-        df = pd.DataFrame(columns=['high', 'mid', 'low'], index=df_quotes.index)
-        df['High'] = df_quotes.High.rolling(window=self.high).max()
-        df['Low'] = df_quotes.Low.rolling(window=self.low).min()
-        df['Mid'] = (df.high + df.low)/2
+        df = pd.DataFrame(columns=[_.value for _ in self.Columns], index=df_quotes.index)
+        df[self.Columns.HIGH.value] = df_quotes.High.rolling(window=self.high).max()
+        df[self.Columns.LOW.value] = df_quotes.Low.rolling(window=self.low).min()
+        df[self.Columns.MID.value] = (df[self.Columns.HIGH.value] + df[self.Columns.LOW.value])/2
 
         self.add_direction(df, np.logical_and(df.High.shift(1) < df.High, df.Low.shift(1) <= df.Low),
                            np.logical_and(df.Low.shift(1) > df.Low, df.High.shift(1) >= df.High))
@@ -265,6 +271,12 @@ class MACD(IndicatorRunner):
 
 
 class MACross(IndicatorRunner):
+    class Columns(Enum):
+        FAST = 'FastSMA'
+        SLOW = 'SlowSMA'
+        FAST_ON_TOP = 'FastCrossoverSlow'
+        SLOW_ON_TOP = 'SlowCrossoverFast'
+
     def __init__(self, name='MACross', fast=40, slow=60):
         super().__init__(name, 'ma_cross_{}_{}'.format(fast, slow))
         self.fast = fast
@@ -277,11 +289,11 @@ class MACross(IndicatorRunner):
         df = pd.DataFrame(index=df_quotes.index)
         fast_sma = self.factory.create(SMA, period=self.fast).run(symbol, df_quotes)
         slow_sma = self.factory.create(SMA, period=self.slow).run(symbol, df_quotes)
-        df['FastSMA'] = fast_sma.SMA
-        df['SlowSMA'] = slow_sma.SMA
-        df['SlowCrossoverFast'] = np.where(np.logical_and(df.FastSMA <= df.SlowSMA, df.FastSMA.shift(1) > df.SlowSMA.shift(1)), 1, 0)
-        df['FastCrossoverSlow'] = np.where(np.logical_and(df.FastSMA >= df.SlowSMA, df.SlowSMA.shift(1) > df.FastSMA.shift(1)), 1, 0)
-        self.add_direction(df, df['FastSMA'] > df['SlowSMA'], df['SlowSMA'] > df['FastSMA'])
+        df[self.Columns.FAST.value] = fast_sma.SMA
+        df[self.Columns.SLOW.value] = slow_sma.SMA
+        df[self.Columns.SLOW_ON_TOP.value] = np.where(np.logical_and(df[self.Columns.FAST.value] <= df[self.Columns.SLOW.value], df[self.Columns.FAST.value].shift(1) > df[self.Columns.SLOW.value].shift(1)), 1, 0)
+        df[self.Columns.FAST_ON_TOP.value] = np.where(np.logical_and(df[self.Columns.FAST.value] >= df[self.Columns.SLOW.value], df[self.Columns.SLOW.value].shift(1) > df[self.Columns.FAST.value].shift(1)), 1, 0)
+        self.add_direction(df, df[self.Columns.FAST.value] > df[self.Columns.SLOW.value], df[self.Columns.SLOW.value] > df[self.Columns.FAST.value])
         df = utils.round_df(df)
         return df
 
@@ -427,29 +439,44 @@ class Attribute(entity.Attribute):
     def __init__(self, df_values):
         self.df_values = df_values
 
-    def get_value(self, date=None, symbol=None):
-        df = self.df_values
+    def get_value(self, date=None, symbol=None, start=None, end=None):
+        df = self.df_values.copy()
+        if symbol is not None:
+            df = df[symbol].dropna()
+
+        if start is not None:
+            df = df.loc[start:]
+        if end is not None:
+            df = df.loc[:end]
         if date is not None:
             if date not in df.index:
                 return None
             df = df.loc[date]
-        if symbol is not None:
-            return df[symbol]
         return df
+
+    def get_indices(self, symbol=None):
+        if symbol is None:
+            return self.df_values.index.values
+        return self.df_values[symbol].index.values
 
 
 class Indicator(entity.Indicator):
-    def __init__(self, name, attributes):
+    def __init__(self, name, *attributes: Attribute):
         super().__init__(name, attributes)
 
     def get_attribute(self, key):
-        if key in self.attributes.keys():
-            return self.attributes[key]
-        else:
-            return None
+        if type(self.attributes) == dict:
+            if key in self.attributes.keys():
+                return self.attributes[key]
+        return None
 
     def get_attribute_keys(self):
         return self.attributes.keys()
+
+    def get_indices(self, key, symbol=None):
+        if self.get_attribute(key) is None:
+            return []
+        return self.get_attribute(key).get_indices(symbol)
 
 
 class IndicatorFactory(object):
@@ -473,6 +500,20 @@ class PickleIndicatorFactory(IndicatorFactory):
             df_quotes = self.market.get_quotes(symbol=symbol)
             df = runner.run(symbol, df_quotes)
             for col in df.columns:
+                if not type(indicator.attributes) == dict:
+                    indicator.attributes = dict()
                 indicator.attributes[col] = indicator.get_attribute(col) or Attribute(pd.DataFrame())
                 indicator.get_attribute(col).df_values[symbol] = df[col]
         return indicator
+
+
+if __name__ == '__main__':
+    INDICATORS_PATH = config.TEMP_PATH / 'indicators'
+    HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
+
+    symbol = 'SM'
+    market = pkl_to_market('pse', HISTORICAL_DATA_PATH)
+    factory = PickleIndicatorFactory(INDICATORS_PATH, market)
+    macross = factory.create(MACross)
+    fast = macross.get_attribute('FastSMA').get_value(symbol=symbol)
+    print(fast)

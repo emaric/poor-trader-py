@@ -11,7 +11,11 @@ class Attribute(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def get_value(self, date=None, symbol=None):
+    def get_value(self, date=None, symbol=None, start=None, end=None):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_indices(self):
         raise NotImplementedError
 
 
@@ -33,16 +37,23 @@ class Indicator(object):
     def get_attributes(self):
         return self.attributes
 
-    def get_attribute_value(self, date=None, symbol=None, key='Direction'):
-        return self.get_attribute(key).get_value(date, symbol)
+    def get_attribute_value(self, date=None, symbol=None, start=None, end=None, key=None):
+        if key is None:
+            values = dict()
+            for key in self.get_attribute_keys():
+                values[key] = self.get_attribute_value(date=date, symbol=symbol, start=start, end=end, key=key)
+            return values
+        return self.get_attribute(key).get_value(date, symbol, start=start, end=end)
+
+    @abc.abstractmethod
+    def get_indices(self):
+        raise NotImplementedError
 
     def is_long(self, date=None, symbol=None):
-        value = self.get_attribute_value(date, symbol)
-        return value == Direction.LONG
+        return Direction.LONG == self.get_attribute_value(date, symbol, key=Direction.__class__.__name__)
 
     def is_short(self, date=None, symbol=None):
-        value = self.get_attribute_value(date, symbol)
-        return value == Direction.SHORT
+        return Direction.SHORT == self.get_attribute_value(date, symbol, key=Direction.__class__.__name__)
 
 
 class Strategy(object):
