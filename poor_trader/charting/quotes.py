@@ -6,8 +6,8 @@ import matplotlib.dates as mdates
 from matplotlib import pylab as plt
 from matplotlib.finance import candlestick_ohlc
 
-from poor_trader import config
-from poor_trader.charting.entity import ChartItem, OHLC, ChartObject, Subplot
+from poor_trader import config, utils
+from poor_trader.charting.entity import ChartItem, ChartObject, Subplot
 from poor_trader.market import pkl_to_market
 from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, DonchianChannel, MACross, \
     PickleIndicatorFactory, Indicator
@@ -15,10 +15,15 @@ from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, Donchi
 plt.style.use('ggplot')
 
 
+class OHLC(Enum):
+    OPEN = 'Open'
+    HIGH = 'High'
+    LOW = 'Low'
+    CLOSE = 'Close'
+
+
 class QuoteChartItem(ChartItem):
-    class Key(Enum):
-        ITEM_INDEX = 'ItemIndex'
-        FLOAT_INDEX = 'FloatIndex'
+    INDEX = 'Index'
 
     def __init__(self, indices: list, chart_object_enum: Enum, chart_objects: list, df=None):
         super().__init__(indices, chart_object_enum, chart_objects)
@@ -30,8 +35,13 @@ class QuoteChartItem(ChartItem):
         return self.chart_objects[position]
 
     def get_object(self, index):
-        position = self.df[self.df[self.Key.ITEM_INDEX.value] == index].values[-1]
-        return self.get_object_by_position(position)
+        return self.get_object_by_position(self.get_position(index))
+
+    def get_position(self, index):
+        return self.df[self.df[self.INDEX] == index].index.values[-1]
+
+    def get_index(self, position):
+        return self.indices[position]
 
     def __to_dataframe__(self):
         df = self.df
@@ -39,35 +49,14 @@ class QuoteChartItem(ChartItem):
             df = pd.DataFrame(index=self.indices)
             for e in self.chart_object_enum:
                 df[e.value] = [o[e.value] for o in self.chart_objects]
+        df[self.INDEX] = df.index.values
         df = df.reset_index()
-        df[self.Key.ITEM_INDEX.value] = self.indices
-        df[self.Key.FLOAT_INDEX.value] = self.float_indices()
         return df
-        
-    def __to_float__(self, value):
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return mdates.date2num(pd.to_datetime(value))
-    
-    def float_indices(self):
-        return [self.__to_float__(index) for index in self.indices]
-
-    def get_object_by_floatindex(self, float_index):
-        return self.df[self.df[self.Key.FLOAT_INDEX.value] == float_index]
 
     def get_object_values(self, index=None, chart_object_key=None):
         df = self.df.copy()
         if index is not None:
             df = self.get_object(index)
-        if chart_object_key is not None:
-            df = df[chart_object_key.value].values
-        return df
-
-    def get_object_values_by_floatindex(self, float_index=None, chart_object_key=None):
-        df = self.df.copy()
-        if float_index is not None:
-            df = self.get_object(float_index)
         if chart_object_key is not None:
             df = df[chart_object_key.value].values
         return df
@@ -133,7 +122,7 @@ class LineSubplot(Subplot):
                          color=key_color.color, linewidth=key_color.linewidth)
 
 
-def create(quotes: CandlestickSubplot, *subplots: Subplot, title=''):
+def create(quotes: CandlestickSubplot, *subplots: Subplot, title='', save_path=None):
     ncharts = 1
     plotters = [quotes]
     for _ in subplots:
@@ -160,7 +149,12 @@ def create(quotes: CandlestickSubplot, *subplots: Subplot, title=''):
 
     plt.tight_layout()
 
-    plt.show()
+    if save_path:
+        utils.makedirs(save_path.parent)
+        plt.savefig(save_path)
+    else:
+        plt.show()
+
     plt.clf()
     plt.close(fig)
 
@@ -170,8 +164,10 @@ def df_to_quote_chart_item(df: pd.DataFrame, keys_enum_class):
     return QuoteChartItem(df.index.values, keys_enum_class, chart_objects, df=df)
 
 
-def indicator_to_quote_chart_item(indicator_instance: Indicator, keys_enum_class, symbol, istart, iend):
-    indices = indicator_instance.get_indices(keys_enum_class.FAST.value, symbol)[istart:iend]
+def indicator_to_quote_chart_item(indicator_instance: Indicator, keys_enum_class, symbol, istart=None, iend=None, start=None, end=None):
+    indices = indicator_instance.get_indices(symbol=symbol, start=start, end=end)
+    indices = indices[istart:] if istart is not None else indices
+    indices = indices[:iend] if iend is not None else indices
     chart_objects = [indicator_instance.get_attribute_value(date=date, symbol=symbol) for date in indices]
     return QuoteChartItem(indices, keys_enum_class, chart_objects)
 
@@ -193,12 +189,10 @@ if __name__ == '__main__':
     df_quotes = df_quotes.iloc[-size:]
     df_donchian = df_donchian.iloc[-size:]
 
-    quote_chart_item = QuoteChartItem(df_quotes.index.values, OHLC,
-                                      [df_quotes.loc[i] for i in df_quotes.index.values], df=df_quotes)
+    quote_chart_item = df_to_quote_chart_item(df_quotes, OHLC)
     quote_subplot = CandlestickSubplot(quote_chart_item)
 
-    donchian_chart_item = QuoteChartItem(df_donchian.index.values, DonchianChannel.Columns,
-                                         [df_donchian.loc[i] for i in df_donchian.index.values], df=df_donchian)
+    donchian_chart_item = df_to_quote_chart_item(df_donchian, DonchianChannel.Columns)
     donchian_subplot = FilledSubplot(donchian_chart_item,
                                      *[_ for _ in DonchianChannel.Columns],
                                      *['#9160d1', '#b38be8', '#9160d1'])

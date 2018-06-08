@@ -14,14 +14,14 @@ from poor_trader.screening.indicator import PickleIndicatorFactory
 from poor_trader.screening.strategy import Strategy, DonchianChannel
 
 
-class EquityCurveEnum(Enum):
+class EquityCurveKey(Enum):
     EQUITY = 'Equity'
     CASH = 'Cash'
     DRAWDOWN = 'Drawdown'
     DRAWDOWN_PERCENT = 'DrawdownPercent'
 
 
-class TransactionEnum(Enum):
+class TransactionKey(Enum):
     ACTION = 'Action'
     DATE = 'Date'
     SYMBOL = 'Symbol'
@@ -31,7 +31,7 @@ class TransactionEnum(Enum):
     TAGS = 'Tags'
 
 
-class PositionEnum(Enum):
+class PositionKey(Enum):
     DIRECTION = 'Direction'
     SYMBOL = 'Symbol'
     SHARES = 'Shares'
@@ -39,9 +39,9 @@ class PositionEnum(Enum):
     VALUE = 'Value'
 
 
-EQUITY_CURVE_COLUMNS = [_.value for _ in EquityCurveEnum]
-TRANSACTION_COLUMNS = [_.value for _ in TransactionEnum]
-POSITION_COLUMNS = [_.value for _ in PositionEnum]
+EQUITY_CURVE_COLUMNS = [_.value for _ in EquityCurveKey]
+TRANSACTION_COLUMNS = [_.value for _ in TransactionKey]
+POSITION_COLUMNS = [_.value for _ in PositionKey]
 
 
 class DataFrameBacktester(Backtester):
@@ -58,10 +58,10 @@ class DataFrameBacktester(Backtester):
             symbols = market.get_symbols(date)
             self.portfolio.update(date, symbols)
             df.loc[date] = pd.Series()
-            df.loc[date, EquityCurveEnum.EQUITY.value] = self.portfolio.get_equity(date)
-            df.loc[date, EquityCurveEnum.CASH.value] = self.portfolio.get_cash(date)
-            df.loc[date, EquityCurveEnum.DRAWDOWN.value] = self.portfolio.get_drawdown(date)
-            df.loc[date, EquityCurveEnum.DRAWDOWN_PERCENT.value] = self.portfolio.get_drawdown_percent(date)
+            df.loc[date, EquityCurveKey.EQUITY.value] = self.portfolio.get_equity(date)
+            df.loc[date, EquityCurveKey.CASH.value] = self.portfolio.get_cash(date)
+            df.loc[date, EquityCurveKey.DRAWDOWN.value] = self.portfolio.get_drawdown(date)
+            df.loc[date, EquityCurveKey.DRAWDOWN_PERCENT.value] = self.portfolio.get_drawdown_percent(date)
         return utils.round_df(df)
 
 
@@ -98,10 +98,10 @@ class DataFramePortfolio(Portfolio):
         for symbol in symbols:
             index = symbols.index(symbol)
             df.loc[index] = pd.Series()
-            df.loc[index][TransactionEnum.ACTION.value] = Action.CLOSE
-            df.loc[index][TransactionEnum.DATE.value] = pd.to_datetime(date).strftime(config.DATETIME_FORMAT)
-            df.loc[index][TransactionEnum.SYMBOL.value] = symbol
-            df.loc[index][TransactionEnum.PRICE.value] = self.market.get_close(date, symbol)
+            df.loc[index][TransactionKey.ACTION.value] = Action.CLOSE
+            df.loc[index][TransactionKey.DATE.value] = pd.to_datetime(date).strftime(config.DATETIME_FORMAT)
+            df.loc[index][TransactionKey.SYMBOL.value] = symbol
+            df.loc[index][TransactionKey.PRICE.value] = self.market.get_close(date, symbol)
         return df
 
     def open(self, date, symbols):
@@ -109,113 +109,113 @@ class DataFramePortfolio(Portfolio):
         for symbol in symbols:
             index = symbols.index(symbol)
             df.loc[index] = pd.Series()
-            df.loc[index][TransactionEnum.ACTION.value] = Action.OPEN
-            df.loc[index][TransactionEnum.DATE.value] = pd.to_datetime(date).strftime(config.DATETIME_FORMAT)
-            df.loc[index][TransactionEnum.SYMBOL.value] = symbol
-            df.loc[index][TransactionEnum.PRICE.value] = self.market.get_close(date, symbol)
+            df.loc[index][TransactionKey.ACTION.value] = Action.OPEN
+            df.loc[index][TransactionKey.DATE.value] = pd.to_datetime(date).strftime(config.DATETIME_FORMAT)
+            df.loc[index][TransactionKey.SYMBOL.value] = symbol
+            df.loc[index][TransactionKey.PRICE.value] = self.market.get_close(date, symbol)
         return df
 
     def __apply_close_position_sizing__(self, close_transactions):
         if not close_transactions.empty:
             for index in close_transactions.index.values:
-                symbol = close_transactions.loc[index][TransactionEnum.SYMBOL.value]
-                position = self.positions[self.positions[PositionEnum.SYMBOL.value] == symbol]
-                shares = position[PositionEnum.SHARES.value].values[0]
-                close_transactions.loc[index][TransactionEnum.SHARES.value] = shares
-            price = close_transactions[TransactionEnum.PRICE.value]
-            shares = close_transactions[TransactionEnum.SHARES.value]
-            close_transactions[TransactionEnum.VALUE.value] = price * shares
+                symbol = close_transactions.loc[index][TransactionKey.SYMBOL.value]
+                position = self.positions[self.positions[PositionKey.SYMBOL.value] == symbol]
+                shares = position[PositionKey.SHARES.value].values[0]
+                close_transactions.loc[index][TransactionKey.SHARES.value] = shares
+            price = close_transactions[TransactionKey.PRICE.value]
+            shares = close_transactions[TransactionKey.SHARES.value]
+            close_transactions[TransactionKey.VALUE.value] = price * shares
 
     def __apply_open_position_sizing__(self, open_transactions):
         if not open_transactions.empty:
-            open_transactions[TransactionEnum.SHARES.value] = open_transactions.apply(
-                lambda t: self.position_sizing.calculate_shares(t[TransactionEnum.DATE.value],
-                                                                t[TransactionEnum.SYMBOL.value],
+            open_transactions[TransactionKey.SHARES.value] = open_transactions.apply(
+                lambda t: self.position_sizing.calculate_shares(t[TransactionKey.DATE.value],
+                                                                t[TransactionKey.SYMBOL.value],
                                                                 self.account), axis=1)
-            price = open_transactions[TransactionEnum.PRICE.value]
-            shares = open_transactions[TransactionEnum.SHARES.value]
-            open_transactions[TransactionEnum.VALUE.value] = price * shares
+            price = open_transactions[TransactionKey.PRICE.value]
+            shares = open_transactions[TransactionKey.SHARES.value]
+            open_transactions[TransactionKey.VALUE.value] = price * shares
 
     def __apply_boardlot__(self, open_transactions):
         if not open_transactions.empty:
-            boardlot = open_transactions.apply(lambda t: utils.boardlot(t[TransactionEnum.PRICE.value]), axis=1)
-            shares = open_transactions[TransactionEnum.SHARES.value]
-            open_transactions[TransactionEnum.SHARES.value] = (shares / boardlot).astype(int) * boardlot
-            price = open_transactions[TransactionEnum.PRICE.value]
-            shares = open_transactions[TransactionEnum.SHARES.value]
-            open_transactions[TransactionEnum.VALUE.value] = price * shares
+            boardlot = open_transactions.apply(lambda t: utils.boardlot(t[TransactionKey.PRICE.value]), axis=1)
+            shares = open_transactions[TransactionKey.SHARES.value]
+            open_transactions[TransactionKey.SHARES.value] = (shares / boardlot).astype(int) * boardlot
+            price = open_transactions[TransactionKey.PRICE.value]
+            shares = open_transactions[TransactionKey.SHARES.value]
+            open_transactions[TransactionKey.VALUE.value] = price * shares
 
     def __apply_broker_values__(self, open_transactions, action: Action):
         if not open_transactions.empty:
             calculate_method = self.broker.calculate_buy_value if action == Action.OPEN else self.broker.calculate_sell_value
-            open_transactions[TransactionEnum.VALUE.value] = open_transactions.apply(
-                lambda t: calculate_method(t[TransactionEnum.PRICE.value],
-                                           t[TransactionEnum.SHARES.value]), axis=1)
+            open_transactions[TransactionKey.VALUE.value] = open_transactions.apply(
+                lambda t: calculate_method(t[TransactionKey.PRICE.value],
+                                           t[TransactionKey.SHARES.value]), axis=1)
 
     def __add_tags__(self, transactions, indicator_names_getter):
         if not transactions.empty:
-            transactions[TransactionEnum.TAGS.value] = transactions.apply(
-                lambda t: ' '.join(indicator_names_getter(t[TransactionEnum.DATE.value],
-                                                          t[TransactionEnum.SYMBOL.value])), axis=1)
+            transactions[TransactionKey.TAGS.value] = transactions.apply(
+                lambda t: ' '.join(indicator_names_getter(t[TransactionKey.DATE.value],
+                                                          t[TransactionKey.SYMBOL.value])), axis=1)
 
     def update_positions(self, new_transactions, direction, date=None):
         if new_transactions is not None and not new_transactions.empty:
-            symbols = new_transactions[TransactionEnum.SYMBOL.value].values
+            symbols = new_transactions[TransactionKey.SYMBOL.value].values
 
-            existing_positions = self.positions[self.positions[PositionEnum.SYMBOL.value].isin(symbols)]
+            existing_positions = self.positions[self.positions[PositionKey.SYMBOL.value].isin(symbols)]
             if direction is not None:
-                existing_positions = existing_positions[existing_positions[PositionEnum.DIRECTION.value] == direction]
+                existing_positions = existing_positions[existing_positions[PositionKey.DIRECTION.value] == direction]
 
-            new_symbols = [_ for _ in symbols if _ not in self.positions[self.positions[PositionEnum.DIRECTION.value] == direction][PositionEnum.SYMBOL.value].values]
+            new_symbols = [_ for _ in symbols if _ not in self.positions[self.positions[PositionKey.DIRECTION.value] == direction][PositionKey.SYMBOL.value].values]
             if len(new_symbols) > 0:
                 for symbol in new_symbols:
                     index = len(self.positions.index.values)
-                    new_transaction = new_transactions.loc[new_transactions[TransactionEnum.SYMBOL.value] == symbol]
+                    new_transaction = new_transactions.loc[new_transactions[TransactionKey.SYMBOL.value] == symbol]
                     self.positions.loc[index] = pd.Series()
-                    self.positions.loc[index, PositionEnum.DIRECTION.value] = direction
-                    self.positions.loc[index, PositionEnum.SYMBOL.value] = symbol
-                    self.positions.loc[index, PositionEnum.SHARES.value] = new_transaction[TransactionEnum.SHARES.value].values[0]
-                    self.positions.loc[index, PositionEnum.PRICE.value] = new_transaction[TransactionEnum.PRICE.value].values[0]
-                    self.positions.loc[index, PositionEnum.VALUE.value] = new_transaction[TransactionEnum.VALUE.value].values[0]
+                    self.positions.loc[index, PositionKey.DIRECTION.value] = direction
+                    self.positions.loc[index, PositionKey.SYMBOL.value] = symbol
+                    self.positions.loc[index, PositionKey.SHARES.value] = new_transaction[TransactionKey.SHARES.value].values[0]
+                    self.positions.loc[index, PositionKey.PRICE.value] = new_transaction[TransactionKey.PRICE.value].values[0]
+                    self.positions.loc[index, PositionKey.VALUE.value] = new_transaction[TransactionKey.VALUE.value].values[0]
 
             for index in existing_positions.index.values:
-                symbol = self.positions.loc[index][PositionEnum.SYMBOL.value]
-                position_shares = self.positions.loc[index][PositionEnum.SHARES.value]
-                transaction_shares = new_transactions[new_transactions[TransactionEnum.SYMBOL.value] == symbol][TransactionEnum.SHARES.value].values[0]
-                is_open_transaction = new_transactions[new_transactions[TransactionEnum.SYMBOL.value] == symbol][TransactionEnum.ACTION.value].values[0] == Action.OPEN
+                symbol = self.positions.loc[index][PositionKey.SYMBOL.value]
+                position_shares = self.positions.loc[index][PositionKey.SHARES.value]
+                transaction_shares = new_transactions[new_transactions[TransactionKey.SYMBOL.value] == symbol][TransactionKey.SHARES.value].values[0]
+                is_open_transaction = new_transactions[new_transactions[TransactionKey.SYMBOL.value] == symbol][TransactionKey.ACTION.value].values[0] == Action.OPEN
                 transaction_shares = transaction_shares if is_open_transaction else -transaction_shares
                 new_shares = position_shares + transaction_shares
-                self.positions.loc[index, PositionEnum.SHARES.value] = new_shares
+                self.positions.loc[index, PositionKey.SHARES.value] = new_shares
 
         if date is not None and not self.positions.empty:
-            self.positions[PositionEnum.PRICE.value] = self.positions.apply(
-                lambda p: self.market.get_close(end=date, symbol=p[PositionEnum.SYMBOL.value]).dropna().values[-1], axis=1)
-            self.positions[PositionEnum.VALUE.value] = self.positions.apply(
-                lambda p: self.broker.calculate_sell_value(p[PositionEnum.PRICE.value], p[PositionEnum.SHARES.value]), axis=1)
+            self.positions[PositionKey.PRICE.value] = self.positions.apply(
+                lambda p: self.market.get_close(end=date, symbol=p[PositionKey.SYMBOL.value]).dropna().values[-1], axis=1)
+            self.positions[PositionKey.VALUE.value] = self.positions.apply(
+                lambda p: self.broker.calculate_sell_value(p[PositionKey.PRICE.value], p[PositionKey.SHARES.value]), axis=1)
         self.__remove_empty_positions__()
 
     def update_account(self, transactions):
-        close_transactions = transactions[transactions[TransactionEnum.ACTION.value] == Action.CLOSE]
-        open_transactions = transactions[transactions[TransactionEnum.ACTION.value] == Action.OPEN]
+        close_transactions = transactions[transactions[TransactionKey.ACTION.value] == Action.CLOSE]
+        open_transactions = transactions[transactions[TransactionKey.ACTION.value] == Action.OPEN]
         if not close_transactions.empty:
-            self.account.cash = self.account.cash + close_transactions[TransactionEnum.VALUE.value].sum()
+            self.account.cash = self.account.cash + close_transactions[TransactionKey.VALUE.value].sum()
         if not open_transactions.empty:
-            self.account.cash = self.account.cash - open_transactions[TransactionEnum.VALUE.value].sum()
-        self.account.equity = self.account.cash + self.positions[PositionEnum.VALUE.value].sum()
+            self.account.cash = self.account.cash - open_transactions[TransactionKey.VALUE.value].sum()
+        self.account.equity = self.account.cash + self.positions[PositionKey.VALUE.value].sum()
 
     def open_positions(self, date, symbols):
         if self.account.cash > 0:
-            closed_symbols = self.transactions[(pd.to_datetime(self.transactions[TransactionEnum.DATE.value]) == pd.to_datetime(date))
-                                               & (self.transactions[TransactionEnum.ACTION.value] == Action.CLOSE)][TransactionEnum.SYMBOL.value].values
-            open_symbols = self.positions[PositionEnum.SYMBOL.value].values
+            closed_symbols = self.transactions[(pd.to_datetime(self.transactions[TransactionKey.DATE.value]) == pd.to_datetime(date))
+                                               & (self.transactions[TransactionKey.ACTION.value] == Action.CLOSE)][TransactionKey.SYMBOL.value].values
+            open_symbols = self.positions[PositionKey.SYMBOL.value].values
             for strategy in self.strategies:
-                long_symbols = [_ for _ in symbols if strategy.is_long(date, _) and _ not in self.positions[PositionEnum.SYMBOL.value].values and _ not in closed_symbols and _ not in open_symbols]
+                long_symbols = [_ for _ in symbols if strategy.is_long(date, _) and _ not in self.positions[PositionKey.SYMBOL.value].values and _ not in closed_symbols and _ not in open_symbols]
                 open_transactions = self.open(date, long_symbols)
                 self.__apply_open_position_sizing__(open_transactions)
                 self.__apply_boardlot__(open_transactions)
                 self.__apply_broker_values__(open_transactions, Action.OPEN)
-                while self.account.cash < open_transactions[TransactionEnum.VALUE.value].sum():
-                    open_transactions = open_transactions[open_transactions[TransactionEnum.VALUE.value] > open_transactions[TransactionEnum.VALUE.value].min()]
+                while self.account.cash < open_transactions[TransactionKey.VALUE.value].sum():
+                    open_transactions = open_transactions[open_transactions[TransactionKey.VALUE.value] > open_transactions[TransactionKey.VALUE.value].min()]
                 if not open_transactions.empty:
                     self.__add_tags__(open_transactions, strategy.get_long_indicator_names)
                     self.transactions = self.transactions.append(open_transactions, ignore_index=True)
@@ -223,13 +223,13 @@ class DataFramePortfolio(Portfolio):
                     self.update_account(open_transactions)
 
     def __remove_empty_positions__(self):
-        if not self.positions[self.positions[PositionEnum.SHARES.value] < 0].empty:
+        if not self.positions[self.positions[PositionKey.SHARES.value] < 0].empty:
             raise RuntimeError
-        self.positions = self.positions[self.positions[PositionEnum.SHARES.value] > 0]
+        self.positions = self.positions[self.positions[PositionKey.SHARES.value] > 0]
 
     def close_positions(self, date, symbols):
         if not self.positions.empty:
-            open_symbols = [_ for _ in symbols if _ in self.positions[PositionEnum.SYMBOL.value].values]
+            open_symbols = [_ for _ in symbols if _ in self.positions[PositionKey.SYMBOL.value].values]
             for strategy in self.strategies:
                 close_transactions = self.close(date, [_ for _ in open_symbols if strategy.is_short(date=date, symbol=_)])
                 if not close_transactions.empty:
@@ -244,20 +244,20 @@ class DataFramePortfolio(Portfolio):
         if self.equity_curve.empty:
             index = pd.to_datetime(date) - datetime.timedelta(days=1)
             self.equity_curve.loc[index] = pd.Series()
-            self.equity_curve.loc[index, EquityCurveEnum.EQUITY.value] = self.account.starting_balance
-            self.equity_curve.loc[index, EquityCurveEnum.CASH.value] = self.account.starting_balance
+            self.equity_curve.loc[index, EquityCurveKey.EQUITY.value] = self.account.starting_balance
+            self.equity_curve.loc[index, EquityCurveKey.CASH.value] = self.account.starting_balance
             self.equity_curve = self.equity_curve.fillna(0)
             print(index.strftime(config.DATE_FORMAT),
-                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveEnum.EQUITY.value]),
-                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveEnum.CASH.value]),
-                  '{:>13.4f}'.format(self.equity_curve.loc[index][EquityCurveEnum.DRAWDOWN_PERCENT.value]))
+                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveKey.EQUITY.value]),
+                  '{:>18.4f}'.format(self.equity_curve.loc[index][EquityCurveKey.CASH.value]),
+                  '{:>13.4f}'.format(self.equity_curve.loc[index][EquityCurveKey.DRAWDOWN_PERCENT.value]))
 
         self.equity_curve.loc[date] = pd.Series()
-        self.equity_curve.loc[date, EquityCurveEnum.EQUITY.value] = self.account.equity
-        self.equity_curve.loc[date, EquityCurveEnum.CASH.value] = self.account.cash
-        self.equity_curve[EquityCurveEnum.DRAWDOWN.value] = self.equity_curve[EquityCurveEnum.EQUITY.value].expanding(1).apply(
+        self.equity_curve.loc[date, EquityCurveKey.EQUITY.value] = self.account.equity
+        self.equity_curve.loc[date, EquityCurveKey.CASH.value] = self.account.cash
+        self.equity_curve[EquityCurveKey.DRAWDOWN.value] = self.equity_curve[EquityCurveKey.EQUITY.value].expanding(1).apply(
                                                             lambda d: -(d.max()-d[-1]))
-        self.equity_curve[EquityCurveEnum.DRAWDOWN_PERCENT.value] = self.equity_curve[EquityCurveEnum.EQUITY.value].expanding(1).apply(
+        self.equity_curve[EquityCurveKey.DRAWDOWN_PERCENT.value] = self.equity_curve[EquityCurveKey.EQUITY.value].expanding(1).apply(
                                                                     lambda d: -(100 * (d.max()-d[-1]) / d.max()))
         self.equity_curve = utils.round_df(self.equity_curve)
 
@@ -289,9 +289,9 @@ class DataFramePortfolio(Portfolio):
         self.equity_curve = pd.read_pickle(save_dir_path / self.EQUITY_CURVE_FILENAME)
         self.positions = pd.read_pickle(save_dir_path / self.POSITIONS_FILENAME)
         self.transactions = pd.read_pickle(save_dir_path / self.TRANSACTIONS_FILENAME)
-        self.account.equity = self.equity_curve[EquityCurveEnum.EQUITY.value].values[-1]
-        self.account.cash = self.equity_curve[EquityCurveEnum.CASH.value].values[-1]
-        self.account.starting_balance = self.equity_curve[EquityCurveEnum.EQUITY.value].values[0]
+        self.account.equity = self.equity_curve[EquityCurveKey.EQUITY.value].values[-1]
+        self.account.cash = self.equity_curve[EquityCurveKey.CASH.value].values[-1]
+        self.account.starting_balance = self.equity_curve[EquityCurveKey.EQUITY.value].values[0]
 
     def get_positions(self):
         return self.positions
@@ -300,17 +300,16 @@ class DataFramePortfolio(Portfolio):
         return self.transactions
 
     def get_equity(self, date):
-        return self.equity_curve.loc[date][EquityCurveEnum.EQUITY.value]
+        return self.equity_curve.loc[date][EquityCurveKey.EQUITY.value]
 
     def get_cash(self, date):
-        return self.equity_curve.loc[date][EquityCurveEnum.CASH.value]
+        return self.equity_curve.loc[date][EquityCurveKey.CASH.value]
 
     def get_drawdown(self, date):
-        return self.equity_curve.loc[date][EquityCurveEnum.DRAWDOWN.value]
+        return self.equity_curve.loc[date][EquityCurveKey.DRAWDOWN.value]
 
     def get_drawdown_percent(self, date):
-        return self.equity_curve.loc[date][EquityCurveEnum.DRAWDOWN_PERCENT.value]
-
+        return self.equity_curve.loc[date][EquityCurveKey.DRAWDOWN_PERCENT.value]
 
 
 if __name__ == '__main__':

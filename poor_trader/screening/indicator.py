@@ -241,8 +241,10 @@ class DonchianChannel(IndicatorRunner):
         df[self.Columns.LOW.value] = df_quotes.Low.rolling(window=self.low).min()
         df[self.Columns.MID.value] = (df[self.Columns.HIGH.value] + df[self.Columns.LOW.value])/2
 
-        self.add_direction(df, np.logical_and(df.High.shift(1) < df.High, df.Low.shift(1) <= df.Low),
-                           np.logical_and(df.Low.shift(1) > df.Low, df.High.shift(1) >= df.High))
+        self.add_direction(df, np.logical_and(df[self.Columns.HIGH.value].shift(1) < df[self.Columns.HIGH.value],
+                                              df[self.Columns.LOW.value].shift(1) <= df[self.Columns.LOW.value]),
+                           np.logical_and(df[self.Columns.LOW.value].shift(1) > df[self.Columns.LOW.value],
+                                          df[self.Columns.HIGH.value].shift(1) >= df[self.Columns.HIGH.value]))
         df = utils.round_df(df)
         return df
 
@@ -455,10 +457,13 @@ class Attribute(entity.Attribute):
             df = df.loc[date]
         return df
 
-    def get_indices(self, symbol=None):
+    def get_indices(self, symbol=None, start=None, end=None):
+        df = self.df_values.copy()
+        df = df.loc[start:] if start is not None else df
+        df = df.loc[:end] if end is not None else df
         if symbol is None:
-            return self.df_values.index.values
-        return self.df_values[symbol].index.values
+            return df.index.values
+        return df[symbol].dropna().index.values
 
 
 class Indicator(entity.Indicator):
@@ -474,10 +479,8 @@ class Indicator(entity.Indicator):
     def get_attribute_keys(self):
         return self.attributes.keys()
 
-    def get_indices(self, key, symbol=None):
-        if self.get_attribute(key) is None:
-            return []
-        return self.get_attribute(key).get_indices(symbol)
+    def get_indices(self, key=Direction.__name__, symbol=None, start=None, end=None):
+        return self.get_attribute(key).get_indices(symbol, start=start, end=end)
 
 
 class IndicatorFactory(object):

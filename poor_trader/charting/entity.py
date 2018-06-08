@@ -3,54 +3,12 @@ import abc
 from enum import Enum
 
 
-class ChartObject(object):
+class ChartObject(dict):
     def __init__(self, enum_class, *args):
+        super().__init__()
         for enum, value in zip(enum_class, args):
+            self[enum.value] = value
             self.__dict__[enum.value] = value
-
-    def get_value(self, key: Enum):
-        return self.__dict__[key.value]
-
-    def __str__(self):
-        return str(self.__dict__)
-
-
-class EquityCurveKey(Enum):
-    EQUITY = 'Equity'
-    CASH = 'Cash'
-    DRAWDOWN = 'Drawdown'
-    DRAWDOWN_PERCENT = 'DrawdownPercent'
-
-
-class EquityCurveItem(ChartObject):
-    def __init__(self, equity=100000.0, cash=100000.0, drawdown=0.0, drawdown_percent=0.0):
-        super().__init__(EquityCurveKey, equity, cash, drawdown, drawdown_percent)
-
-
-class OpenCloseLineKey(Enum):
-    OPEN_INDEX = 'OpenIndex'
-    CLOSE_INDEX = 'CloseIndex'
-    OPEN_PRICE = 'OpenPrice'
-    CLOSE_PRICE = 'ClosePrice'
-
-
-class OpenCloseLineItem(ChartObject):
-    def __init__(self, open_index, close_index, open_price, close_price):
-        super().__init__(OpenCloseLineKey, open_index, close_index, open_price, close_price)
-
-
-class EquityCurveChart(object):
-    def __init__(self, indices=list(), equity_curve_items=list(), index_labels=list()):
-        self.indices = indices
-        self.equity_curve_items = equity_curve_items
-        self.index_labels = indices if len(index_labels) <= 0 else index_labels
-
-
-class OHLC(Enum):
-    OPEN = 'Open'
-    HIGH = 'High'
-    LOW = 'Low'
-    CLOSE = 'Close'
 
 
 class ChartItem(object):
@@ -70,6 +28,14 @@ class ChartItem(object):
     def get_object_by_position(self, position):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def get_position(self, index):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_index(self, position):
+        raise NotImplementedError
+
 
 class Subplot(object):
     __metaclass__ = abc.ABCMeta
@@ -81,3 +47,4 @@ class Subplot(object):
     @abc.abstractmethod
     def plot(self, subplot):
         raise NotImplementedError
+

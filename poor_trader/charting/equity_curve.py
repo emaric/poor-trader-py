@@ -1,12 +1,13 @@
 import datetime
 import traceback
+from enum import Enum
 
 import pandas as pd
 import numpy as np
 from matplotlib import pylab as plt
 
 from poor_trader import config
-from poor_trader.charting import entity
+from poor_trader.charting.entity import ChartObject
 
 plt.style.use('ggplot')
 
@@ -16,16 +17,36 @@ DRAWDOWN_COLOR = 'red'
 DRAWDOWN_PERCENT_COLOR = 'red'
 
 
-def create(data: entity.EquityCurveChart,
+class EquityCurveKey(Enum):
+    EQUITY = 'Equity'
+    CASH = 'Cash'
+    DRAWDOWN = 'Drawdown'
+    DRAWDOWN_PERCENT = 'DrawdownPercent'
+
+
+class EquityCurveChartObject(ChartObject):
+    def __init__(self, equity=100000.0, cash=100000.0, drawdown=0.0, drawdown_percent=0.0):
+        super().__init__(EquityCurveKey, equity, cash, drawdown, drawdown_percent)
+
+
+class EquityCurveChart(object):
+    def __init__(self, indices=list(), equity_curve_chart_object=list(), index_labels=list()):
+        self.indices = indices
+        self.equity_curve_chart_object = equity_curve_chart_object
+        self.index_labels = indices if len(index_labels) <= 0 else index_labels
+
+
+def create(data: EquityCurveChart,
            equity_cash_title='Equity Curve',
            drawdown_title='Drawdown',
            drawdown_pct_title='Drawdown %',
            fpath=None):
+
     indices = data.indices
-    equity = [_.Equity for _ in data.equity_curve_items]
-    cash = [_.Cash for _ in data.equity_curve_items]
-    drawdown = [_.Drawdown for _ in data.equity_curve_items]
-    drawdown_pct = [_.DrawdownPercent for _ in data.equity_curve_items]
+    equity = [_[EquityCurveKey.EQUITY.value] for _ in data.equity_curve_chart_object]
+    cash = [_[EquityCurveKey.CASH.value] for _ in data.equity_curve_chart_object]
+    drawdown = [_[EquityCurveKey.DRAWDOWN.value] for _ in data.equity_curve_chart_object]
+    drawdown_pct = [_[EquityCurveKey.DRAWDOWN_PERCENT.value] for _ in data.equity_curve_chart_object]
 
     xaxis = range(len(indices))
     space = 15
@@ -82,6 +103,6 @@ if __name__ == '__main__':
     dd = pd.Series(equity_data).expanding().apply(lambda e: -(e.max() - e[-1]))
     dd_pct = pd.Series(equity_data).expanding().apply(lambda e: -100 * ((e.max() - e[-1]) / e.max()))
 
-    items = [entity.EquityCurveItem(equity_data[i], cash[i], dd[i], dd_pct[i]) for i in range(len(indices))]
-    test_data = entity.EquityCurveChart(indices=indices, equity_curve_items=items, index_labels=index_labels)
+    items = [EquityCurveChartObject(equity_data[i], cash[i], dd[i], dd_pct[i]) for i in range(len(indices))]
+    test_data = EquityCurveChart(indices=indices, equity_curve_chart_object=items, index_labels=index_labels)
     create(test_data)

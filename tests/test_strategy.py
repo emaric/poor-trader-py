@@ -28,10 +28,12 @@ class TestStrategy(unittest.TestCase):
                 print(pd.to_datetime(date).strftime(config.DATETIME_FORMAT), 'LONG:', long, 'SHORT:', short)
             if len(long) > 0:
                 for symbol in long:
-                    self.assertEqual([_.name for _ in atr_channel_breakout.indicators], atr_channel_breakout.get_long_indicator_names(date, symbol))
+                    self.assertEqual([_.name for _ in atr_channel_breakout.indicators],
+                                     atr_channel_breakout.get_long_indicator_names(date, symbol))
             if len(short) > 0:
                 for symbol in short:
-                    self.assertEqual([_.name for _ in atr_channel_breakout.indicators], atr_channel_breakout.get_short_indicator_names(date, symbol))
+                    self.assertEqual([_.name for _ in atr_channel_breakout.indicators],
+                                     atr_channel_breakout.get_short_indicator_names(date, symbol))
 
 
 if __name__ == '__main__':

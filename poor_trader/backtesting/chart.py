@@ -179,12 +179,12 @@ def ohlc_chart(df_dohlc, title='chart', save_path=None, open_close_line_list=lis
 
     for open_close_line in open_close_line_list:
         open_datenum = np.round(mdates.date2num(pd.to_datetime(open_close_line.OpenIndex)), 6)
-        close_datenum = np.round(mdates.date2num(pd.to_datetime(open_close_line.CloseIndex)), 6)
+        close_datenum = df_dohlc['Date'].values[-1] if open_close_line.CloseIndex is None else np.round(mdates.date2num(pd.to_datetime(open_close_line.CloseIndex)), 6)
         df_dohlc['Date'] = np.round(df_dohlc['Date'], 6)
         buy_index = df_dohlc[df_dohlc['Date'] == open_datenum].index
         sell_index = df_dohlc[df_dohlc['Date'] == close_datenum].index
         buy = open_close_line.OpenPrice
-        sell = open_close_line.ClosePrice
+        sell = df_dohlc['Close'].values[-1] if open_close_line.ClosePrice is None else open_close_line.ClosePrice
         marker_space = (max(df_dohlc.High.values) - min(df_dohlc.Low.values)) / 10
 
         ax1.plot((buy_index, sell_index), (buy, sell), 'o-', color='{}'.format('#ff00fa' if buy >= sell else '#21ff24'), linewidth=3 * size_pct, markersize=6 * size_pct)

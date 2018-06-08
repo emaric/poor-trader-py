@@ -1,6 +1,8 @@
 import abc
 
+from poor_trader.market import Market
 from poor_trader.screening import entity, indicator
+from poor_trader.screening.entity import Direction
 
 
 class Strategy(entity.Strategy):
@@ -44,3 +46,13 @@ class DonchianChannel(Strategy):
         donchian_channel = self.indicator_factory.create(indicator.DonchianChannel, high=self.high, low=self.low)
         ma_cross = self.indicator_factory.create(indicator.MACross, fast=self.fast, slow=self.slow)
         return [donchian_channel, ma_cross]
+
+    def entry_condition(self, date, symbol, market: Market, direction=Direction.LONG):
+        raise NotImplementedError
+
+    def reentry_condition(self, date, symbol, market: Market, direction=Direction.LONG):
+        raise NotImplementedError
+
+    def exit_condition(self, date, symbol, market: Market, direction=Direction.LONG):
+        raise NotImplementedError
+
