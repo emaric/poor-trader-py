@@ -188,18 +188,10 @@ if __name__ == '__main__':
 
     df_quotes = market.get_quotes(symbol=symbol)
     df_donchian = runner_factory.create(DonchianChannel).run(symbol=symbol, df_quotes=df_quotes)
-    df_macross = runner_factory.create(MACross).run(symbol=symbol, df_quotes=df_quotes)
-
     macross = factory.create(MACross)
-    get_values = lambda e, d: macross.get_attribute(e.value).get_value(date=d, symbol=symbol)
-    macross_test = macross.get_indices('Direaction', symbol)
-    macross_indices = df_quotes.index.values
-    macross_chart_objects = [ChartObject(MACross.Columns, *[get_values(c, i) for c in MACross.Columns]).__dict__ for i in macross_indices]
-    macross_chart_item2 = QuoteChartItem(macross_indices, MACross.Columns, macross_chart_objects)
 
     df_quotes = df_quotes.iloc[-size:]
     df_donchian = df_donchian.iloc[-size:]
-    df_macross = df_macross.iloc[-size:]
 
     quote_chart_item = QuoteChartItem(df_quotes.index.values, OHLC,
                                       [df_quotes.loc[i] for i in df_quotes.index.values], df=df_quotes)
@@ -211,12 +203,10 @@ if __name__ == '__main__':
                                      *[_ for _ in DonchianChannel.Columns],
                                      *['#9160d1', '#b38be8', '#9160d1'])
 
-    macross_chart_item = QuoteChartItem(df_macross.index.values, MACross.Columns,
-                                        [df_macross.loc[i] for i in df_macross.index.values], df=df_macross)
     macross_chart_item = indicator_to_quote_chart_item(macross, MACross.Columns, symbol, -size, -1)
     macross_subplot = LineSubplot(macross_chart_item,
-                                  LineSubplot.Config(MACross.Columns.FAST, '#3af8ff', 3),
-                                  LineSubplot.Config(MACross.Columns.SLOW, '#bd3aff', 3))
+                                  LineSubplot.Config(MACross.Columns.FAST, '#3af8ff', 2),
+                                  LineSubplot.Config(MACross.Columns.SLOW, '#bd3aff', 2))
 
     create(quote_subplot, donchian_subplot, macross_subplot, title=symbol)
 
