@@ -1,5 +1,7 @@
 from enum import Enum
 
+import pandas as pd
+
 from poor_trader import config
 from poor_trader.backtesting.backtester import TransactionKey
 from poor_trader.backtesting.entity import Action
@@ -26,7 +28,7 @@ class OpenCloseLineObject(ChartObject):
 class OpenCloseSubplot(Subplot):
     class Config(object):
         def __init__(self, loss_color='#ff00fa', win_color='#21ff24', open_marker='^', close_marker='v',
-                     linewidth=1, marker_size=2, marker_edge_width=0.2, marker_edge_color='black', point_shape='o',
+                     linewidth=2, marker_size=6, marker_edge_width=0.5, marker_edge_color='black', point_shape='o',
                      line_style='-', open_line_style='--'):
             self.loss_color = loss_color
             self.win_color = win_color
@@ -52,7 +54,7 @@ class OpenCloseSubplot(Subplot):
         for oc in self.open_close_objects:
             open_position = quote_chart_item.get_position(oc[OpenCloseLineKey.OPEN_INDEX.value])
             close_index = oc[OpenCloseLineKey.CLOSE_INDEX.value]
-            close_position = last_position if close_index is None else quote_chart_item.get_position(oc[OpenCloseLineKey.CLOSE_INDEX.value])
+            close_position = last_position if close_index is None else quote_chart_item.get_position(close_index)
 
             open_price = oc[OpenCloseLineKey.OPEN_PRICE.value]
             close_price = oc[OpenCloseLineKey.CLOSE_PRICE.value]
@@ -64,7 +66,7 @@ class OpenCloseSubplot(Subplot):
 
             subplot.plot((open_position, close_position), (open_price, close_price),
                          '{}{}'.format(self.config.point_shape, self.config.line_style if close_index else self.config.open_line_style),
-                         linewidth=self.config.line_width, markersize=self.config.marker_size * 0.8,
+                         linewidth=self.config.line_width, markersize=self.config.marker_size * 0.7,
                          color='{}'.format(self.config.loss_color if open_price >= close_price else self.config.win_color))
             subplot.plot(open_position, (open_price - marker_space),
                          color=self.config.win_color, marker=self.config.open_marker,
@@ -90,16 +92,17 @@ def transactions_to_open_close_line_items(transactions):
 
     open_close_line_items = []
     for open_close_transaction in open_close_transactions:
-        close_transaction = {TransactionKey.DATE.value:None, TransactionKey.PRICE.value:None}
+        close_transaction = {TransactionKey.DATE.value: None, TransactionKey.PRICE.value: None}
         last = open_close_transaction[-1]
         if last[TransactionKey.ACTION.value] == Action.CLOSE:
             close_transaction = last
-        for open_transaction in open_close_transaction[:-1]:
-            oc_line = OpenCloseLineObject(pd.to_datetime(open_transaction[TransactionKey.DATE.value]),
-                                          pd.to_datetime(close_transaction[TransactionKey.DATE.value]),
-                                          open_transaction[TransactionKey.PRICE.value],
-                                          close_transaction[TransactionKey.PRICE.value])
-            open_close_line_items.append(oc_line)
+        for open_transaction in open_close_transaction:
+            if open_transaction[TransactionKey.ACTION.value] == Action.OPEN:
+                oc_line = OpenCloseLineObject(pd.to_datetime(open_transaction[TransactionKey.DATE.value]),
+                                              pd.to_datetime(close_transaction[TransactionKey.DATE.value]),
+                                              open_transaction[TransactionKey.PRICE.value],
+                                              close_transaction[TransactionKey.PRICE.value])
+                open_close_line_items.append(oc_line)
     return open_close_line_items
 
 
@@ -123,7 +126,6 @@ def transactions_to_grouped_open_close_line_items(transactions, key=TransactionK
 
 
 if __name__ == '__main__':
-    import pandas as pd
     from poor_trader.charting.quotes import OHLC
 
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'

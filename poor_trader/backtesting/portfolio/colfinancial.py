@@ -70,6 +70,7 @@ class ColFinancialPortfolio(Portfolio):
             price = self.market.get_close(date=date, symbol=position.symbol)
             try:
                 if not pd.isnull(price):
+                    position.price = price
                     position.value = self.broker.calculate_sell_value(price=price, shares=position.shares)
                     self.position_service.save(position)
             except ValueError:
@@ -112,7 +113,7 @@ if __name__ == '__main__':
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
 
-    pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
+    pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH, symbols=['CEB', 'EW', 'JFC', 'NOW', 'SM'])
     strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market))]
 
     colport = ColFinancialPortfolio(account=Account(1000000),

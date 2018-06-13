@@ -47,7 +47,7 @@ class DataFrameMarket(Market):
     def __init__(self, df_historical_data, symbols=None, name='DataFrameMarket'):
         super().__init__(symbols, name)
         self.__df_historical_data__ = df_historical_data
-        self.__symbols__ = symbols or self.get_symbols()
+        self.__symbols__ = symbols
 
     def get_dates(self, symbols=None, start=None, end=None):
         df = self.__df_historical_data__.copy()
@@ -63,9 +63,13 @@ class DataFrameMarket(Market):
     def get_symbols(self, date=None):
         suffix = '_Date'
         if date is None:
-            return [_[:-len(suffix)] for _ in self.__df_historical_data__.filter(like=suffix).columns]
+            symbols = [_[:-len(suffix)] for _ in self.__df_historical_data__.filter(like=suffix).columns]
         else:
-            return [_[:-len(suffix)] for _ in self.__df_historical_data__.filter(like=suffix).loc[date:date].dropna(axis=1).columns]
+            symbols = [_[:-len(suffix)] for _ in self.__df_historical_data__.filter(like=suffix).loc[date:date].dropna(axis=1).columns]
+        if self.__symbols__ is None or len(self.__symbols__) == 0:
+            return symbols
+        else:
+            return [_ for _ in symbols if _ in self.__symbols__]
 
     def get_quotes(self, date=None, symbol=None, start=None, end=None):
         df = self.__df_historical_data__.copy()
@@ -103,11 +107,11 @@ class DataFrameMarket(Market):
         return self.__get_value_by_column__('Volume', date=date, symbol=symbol, start=start, end=end)
 
 
-def csv_to_market(name, csv_path):
+def csv_to_market(name, csv_path, symbols=None):
     df_historical_data = pd.read_csv(csv_path, parse_dates=True, index_col=0)
-    return DataFrameMarket(df_historical_data=df_historical_data, name=name)
+    return DataFrameMarket(df_historical_data=df_historical_data, name=name, symbols=symbols)
 
 
-def pkl_to_market(name, pkl_path):
+def pkl_to_market(name, pkl_path, symbols=None):
     df_historical_data = pd.read_pickle(pkl_path)
-    return DataFrameMarket(df_historical_data=df_historical_data, name=name)
+    return DataFrameMarket(df_historical_data=df_historical_data, name=name, symbols=symbols)
