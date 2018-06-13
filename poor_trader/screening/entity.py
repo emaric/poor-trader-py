@@ -11,7 +11,7 @@ class Attribute(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def get_value(self, date=None, symbol=None, start=None, end=None):
+    def get_value(self, date=None, symbol=None, start=None):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -37,24 +37,40 @@ class Indicator(object):
     def get_attributes(self):
         return self.attributes
 
-    def get_attribute_value(self, date=None, symbol=None, start=None, end=None, key=None):
+    def get_attribute_value(self, date=None, symbol=None, start=None, key=None):
         if key:
-            return self.get_attribute(key).get_value(date, symbol, start=start, end=end)
+            return self.get_attribute(key).get_value(date, symbol, start=start)
         else:
             values = dict()
             for key in self.get_attribute_keys():
-                values[key] = self.get_attribute_value(date=date, symbol=symbol, start=start, end=end, key=key)
+                values[key] = self.get_attribute_value(date=date, symbol=symbol, start=start, key=key)
             return values
 
     @abc.abstractmethod
     def get_indices(self):
         raise NotImplementedError
 
-    def is_long(self, date=None, symbol=None):
-        return Direction.LONG == self.get_attribute_value(date, symbol, key=Direction.__name__)
+    def is_long(self, date=None, symbol=None, start=None):
+        attribute_value = self.get_attribute_value(date, symbol, key=Direction.__name__, start=start)
+        if type(attribute_value) == str:
+            return Direction.LONG.value == attribute_value
+        elif type(attribute_value) == Direction:
+            return Direction.LONG == attribute_value
+        elif attribute_value is None:
+            return False
+        else:
+            return Direction.LONG in attribute_value
 
-    def is_short(self, date=None, symbol=None):
-        return Direction.SHORT == self.get_attribute_value(date, symbol, key=Direction.__name__)
+    def is_short(self, date=None, symbol=None, start=None):
+        attribute_value = self.get_attribute_value(date, symbol, key=Direction.__name__, start=start)
+        if type(attribute_value) == str:
+            return Direction.SHORT.value == attribute_value
+        elif type(attribute_value) == Direction:
+            return Direction.SHORT == attribute_value
+        elif attribute_value is None:
+            return False
+        else:
+            return Direction.SHORT in attribute_value
 
 
 class Strategy(object):
@@ -64,25 +80,31 @@ class Strategy(object):
         self.name = name
         self.indicators = indicators
 
-    def get_long_indicator_names(self, date=None, symbol=None):
-        return [i.name for i in self.indicators if i.is_long(date, symbol)]
+    def get_indicator_names(self, direction: Direction, date=None, symbol=None, start=None):
+        if direction == Direction.LONG:
+            return self.get_long_indicator_names(date=date, symbol=symbol, start=start)
+        if direction == Direction.SHORT:
+            return self.get_short_indicator_names(date=date, symbol=symbol, start=start)
 
-    def get_short_indicator_names(self, date=None, symbol=None):
-        return [i.name for i in self.indicators if i.is_short(date, symbol)]
+    def get_long_indicator_names(self, date=None, symbol=None, start=None):
+        return [i.name for i in self.indicators if i.is_long(date, symbol, start=start)]
 
-    def is_long(self, date=None, symbol=None):
+    def get_short_indicator_names(self, date=None, symbol=None, start=None):
+        return [i.name for i in self.indicators if i.is_short(date, symbol, start=start)]
+
+    def is_long(self, date=None, symbol=None, start=None):
         if not self.indicators:
             return False
         elif type(self.indicators) == list:
-            return len(self.indicators) == len([_ for _ in self.indicators if _.is_long(date, symbol)])
+            return len(self.indicators) == len([_ for _ in self.indicators if _.is_long(date, symbol, start=start)])
         else:
             raise NotImplementedError
 
-    def is_short(self, date=None, symbol=None):
+    def is_short(self, date=None, symbol=None, start=None):
         if not self.indicators:
             return False
         elif type(self.indicators) == list:
-            return len(self.indicators) == len([_ for _ in self.indicators if _.is_short(date, symbol)])
+            return [_ for _ in self.indicators if _.is_short(date, symbol, start=start)]
         else:
             raise NotImplementedError
 

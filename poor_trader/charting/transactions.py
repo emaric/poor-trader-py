@@ -26,7 +26,7 @@ class OpenCloseLineObject(ChartObject):
 class OpenCloseSubplot(Subplot):
     class Config(object):
         def __init__(self, loss_color='#ff00fa', win_color='#21ff24', open_marker='^', close_marker='v',
-                     linewidth=1, marker_size=2, marker_edge_width=0.2, marker_edge_color='black', point_shape='o-',
+                     linewidth=1, marker_size=2, marker_edge_width=0.2, marker_edge_color='black', point_shape='o',
                      line_style='-', open_line_style='--'):
             self.loss_color = loss_color
             self.win_color = win_color
@@ -95,8 +95,8 @@ def transactions_to_open_close_line_items(transactions):
         if last[TransactionKey.ACTION.value] == Action.CLOSE:
             close_transaction = last
         for open_transaction in open_close_transaction[:-1]:
-            oc_line = OpenCloseLineObject(open_transaction[TransactionKey.DATE.value],
-                                          close_transaction[TransactionKey.DATE.value],
+            oc_line = OpenCloseLineObject(pd.to_datetime(open_transaction[TransactionKey.DATE.value]),
+                                          pd.to_datetime(close_transaction[TransactionKey.DATE.value]),
                                           open_transaction[TransactionKey.PRICE.value],
                                           close_transaction[TransactionKey.PRICE.value])
             open_close_line_items.append(oc_line)
@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
-    TRANSACTIONS_DATA_PATH = (config.RESOURCES_PATH / 'Portfolio') / 'transactions.pkl'
+    TRANSACTIONS_DATA_PATH = (config.RESOURCES_PATH / 'ColFinancialPortfolio') / 'transactions.pkl'
 
     CHARTS_DIR_PATH = TRANSACTIONS_DATA_PATH.parent / 'charts'
 
@@ -137,6 +137,8 @@ if __name__ == '__main__':
     factory = PickleIndicatorFactory(INDICATORS_PATH, market)
 
     df = pd.read_pickle(TRANSACTIONS_DATA_PATH)
+    df.to_csv(TRANSACTIONS_DATA_PATH.parent / 'transactions.csv')
+    df[TransactionKey.DATE.value] = pd.to_datetime(df[TransactionKey.DATE.value])
     transactions = [df.loc[i] for i in df.index.values]
     symbol_oc_line_items = transactions_to_grouped_open_close_line_items(transactions)
 
@@ -165,5 +167,6 @@ if __name__ == '__main__':
 
         oc_subplot = OpenCloseSubplot(quote_chart_item, symbol_oc_line_items[symbol])
 
-        create(quote_subplot, donchian_subplot, macross_subplot, oc_subplot, title=symbol, save_path=CHARTS_DIR_PATH / '{}.pdf'.format(symbol))
+        create(quote_subplot, donchian_subplot, macross_subplot, oc_subplot,
+               title=symbol, save_path=CHARTS_DIR_PATH / '{}.pdf'.format(symbol))
 

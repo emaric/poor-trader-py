@@ -11,7 +11,7 @@ class Market(object):
         self.__symbols__ = symbols
 
     @abc.abstractmethod
-    def get_dates(self, symbols=None):
+    def get_dates(self, symbols=None, start=None, end=None):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -49,11 +49,16 @@ class DataFrameMarket(Market):
         self.__df_historical_data__ = df_historical_data
         self.__symbols__ = symbols or self.get_symbols()
 
-    def get_dates(self, symbols=None):
+    def get_dates(self, symbols=None, start=None, end=None):
+        df = self.__df_historical_data__.copy()
+        if start is not None:
+            df = df.loc[start:]
+        if end is not None:
+            df = df.loc[:end]
         if symbols is None:
-            return self.__df_historical_data__.dropna(thresh=1).index.values
+            return df.dropna(thresh=1).index.values
         else:
-            return self.__df_historical_data__.filter(regex='^({})_Date'.format('|'.join(symbols))).dropna(thresh=1).index.values
+            return df.filter(regex='^({})_Date'.format('|'.join(symbols))).dropna(thresh=1).index.values
 
     def get_symbols(self, date=None):
         suffix = '_Date'

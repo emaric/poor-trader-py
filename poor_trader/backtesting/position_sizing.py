@@ -10,8 +10,9 @@ class EquityPercentage(PositionSizing):
         self.unit_risk = unit_risk
 
     def calculate_shares(self, date, symbol, account):
+        price = self.market.get_close(date, symbol)
         C = account.equity * self.total_risk_pct
-        R = self.market.get_close(date, symbol) * self.unit_risk
+        R = price * self.unit_risk
         P = C / R
         return int(P)
 

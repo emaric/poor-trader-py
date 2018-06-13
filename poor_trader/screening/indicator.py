@@ -442,20 +442,20 @@ class Attribute(entity.Attribute):
     def __init__(self, df_values):
         self.df_values = df_values
 
-    def get_value(self, date=None, symbol=None, start=None, end=None):
+    def get_value(self, date=None, symbol=None, start=None):
         df = self.df_values.copy()
         if symbol is not None:
             df = df[symbol].dropna()
 
         if start is not None:
             df = df.loc[start:]
-        if end is not None:
-            df = df.loc[:end]
-        if date is not None:
+            if date is not None:
+                df = df.loc[:date]
+        elif date is not None:
             if date not in df.index:
                 return None
-            df = df.loc[date]
-        return df
+            return df.loc[date]
+        return [_ for _ in df]
 
     def get_indices(self, symbol=None, start=None, end=None):
         df = self.df_values.copy()
