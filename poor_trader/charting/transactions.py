@@ -9,6 +9,7 @@ from poor_trader.charting.entity import ChartObject, Subplot
 from poor_trader.charting.quotes import df_to_quote_chart_item, CandlestickSubplot, FilledSubplot, \
     indicator_to_quote_chart_item, LineSubplot, create, QuoteChartItem
 from poor_trader.market import pkl_to_market
+from poor_trader.screening import strategy
 from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, PickleIndicatorFactory, DonchianChannel, \
     MACross
 
@@ -139,7 +140,6 @@ if __name__ == '__main__':
     factory = PickleIndicatorFactory(INDICATORS_PATH, market)
 
     df = pd.read_pickle(TRANSACTIONS_DATA_PATH)
-    df.to_csv(TRANSACTIONS_DATA_PATH.parent / 'transactions.csv')
     df[TransactionKey.DATE.value] = pd.to_datetime(df[TransactionKey.DATE.value])
     transactions = [df.loc[i] for i in df.index.values]
     symbol_oc_line_items = transactions_to_grouped_open_close_line_items(transactions)

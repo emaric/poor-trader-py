@@ -88,7 +88,7 @@ class PositionService(object):
 
     def save_to_file(self, dir_path):
         utils.makedirs(dir_path)
-        self.df.to_pickle(dir_path / 'positions.{}'.format(config.PICKLE_EXTENSION))
+        self.df.to_csv(dir_path / 'positions.csv')
 
 
 class TransactionService(object):
@@ -118,6 +118,7 @@ class TransactionService(object):
     def save_to_file(self, dir_path):
         utils.makedirs(dir_path)
         self.df.to_pickle(dir_path / 'transactions.{}'.format(config.PICKLE_EXTENSION))
+        self.df.to_csv(dir_path / 'transactions.csv')
 
 
 class DataFrameBacktester(Backtester):

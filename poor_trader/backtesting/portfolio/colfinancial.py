@@ -113,8 +113,8 @@ if __name__ == '__main__':
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
 
-    pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH, symbols=['CEB', 'EW', 'JFC', 'NOW', 'SM'])
-    strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market))]
+    pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
+    strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market), fast=40, slow=60)]
 
     colport = ColFinancialPortfolio(account=Account(1000000),
                                     market=pse_market,
@@ -124,4 +124,3 @@ if __name__ == '__main__':
                                     strategies=strategies)
     default = DataFrameBacktester(colport)
     ec = default.run(pse_market, start=pd.to_datetime('2015-01-01'))
-    print(ec.df)

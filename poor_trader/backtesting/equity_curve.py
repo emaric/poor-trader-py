@@ -58,4 +58,4 @@ class DefaultEquityCurve(EquityCurve):
 
     def save_to_file(self, dir_path):
         utils.makedirs(dir_path)
-        self.df.to_pickle(dir_path / 'equity_curve.{}'.format(config.PICKLE_EXTENSION))
+        self.df.to_csv(dir_path / 'equity_curve.csv')
