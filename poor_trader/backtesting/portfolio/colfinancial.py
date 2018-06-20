@@ -7,7 +7,7 @@ from poor_trader.market import Market
 from poor_trader.screening.entity import Direction
 
 
-class ColFinancialPortfolio(Portfolio):
+class COLFinancialPortfolio(Portfolio):
 
     def __init__(self, account: Account, market: Market, broker: Broker, position_sizing: PositionSizing,
                  equity_curve: EquityCurve, strategies=list()):
@@ -74,7 +74,8 @@ class ColFinancialPortfolio(Portfolio):
                     position.value = self.broker.calculate_sell_value(price=price, shares=position.shares)
                     self.position_service.save(position)
             except ValueError:
-                print('No price update for {} on {}.'.format(position.symbol, pd.to_datetime(date).strftime(config.DATETIME_FORMAT)))
+                # print('No price update for {} on {}.'.format(position.symbol, pd.to_datetime(date).strftime(config.DATETIME_FORMAT)))
+                pass
 
     def update(self, date, symbols):
         self.close_positions(date=date, symbols=symbols)
@@ -108,19 +109,20 @@ if __name__ == '__main__':
     from poor_trader.backtesting.equity_curve import DefaultEquityCurve
     from poor_trader.backtesting.position_sizing import EquityPercentage
     from poor_trader.screening.indicator import PickleIndicatorFactory
-    from poor_trader.screening.strategy import DonchianChannel
+    from poor_trader.screening.strategy import DonchianChannel, ATRChannelBreakout
 
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
 
     pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
-    strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market), fast=40, slow=60)]
+    strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market), fast=100, slow=120),
+                  ATRChannelBreakout(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market), fast=100, slow=120)]
 
-    colport = ColFinancialPortfolio(account=Account(1000000),
+    colport = COLFinancialPortfolio(account=Account(1000000),
                                     market=pse_market,
                                     broker=COLFinancial(),
                                     position_sizing=EquityPercentage(pse_market),
                                     equity_curve=DefaultEquityCurve(),
                                     strategies=strategies)
     default = DataFrameBacktester(colport)
-    ec = default.run(pse_market, start=pd.to_datetime('2015-01-01'))
+    ec = default.run(pse_market, start=pd.to_datetime('2013-01-01'))
