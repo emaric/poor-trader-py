@@ -9,8 +9,8 @@ from matplotlib.finance import candlestick_ohlc
 from poor_trader import config, utils
 from poor_trader.charting.entity import ChartItem, ChartObject, Subplot
 from poor_trader.market import pkl_to_market
-from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, DonchianChannel, MACross, \
-    PickleIndicatorFactory, Indicator
+from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, PickleIndicatorFactory
+from poor_trader.screening.indicator import DonchianChannel, MACross, TrailingStops, Volume, Indicator
 
 plt.style.use('ggplot')
 
@@ -27,7 +27,7 @@ class QuoteChartItem(ChartItem):
 
     def __init__(self, indices: list, chart_object_enum: Enum, chart_objects: list, df=None):
         super().__init__(indices, chart_object_enum, chart_objects)
-        self.float_index_values_matrix = self.__to_index_values_matrix__(chart_object_enum, chart_objects)
+        self.position_values_matrix = self.__to_position_values_matrix__(chart_object_enum, chart_objects)
         self.df = df
         self.df = self.__to_dataframe__()
 
@@ -64,7 +64,7 @@ class QuoteChartItem(ChartItem):
     def __to_value_list__(self, chart_object_enum: Enum, chart_object: ChartObject):
         return [chart_object[e.value] for e in chart_object_enum]
 
-    def __to_index_values_matrix__(self, chart_object_enum: Enum, chart_objects: list):
+    def __to_position_values_matrix__(self, chart_object_enum: Enum, chart_objects: list):
         return [tuple([i] + self.__to_value_list__(chart_object_enum, chart_objects[i])) for i in self.positions]
 
 
@@ -78,9 +78,35 @@ class CandlestickSubplot(Subplot):
         self.edgecolor = edgecolor
 
     def plot(self, subplot):
-        ls, rs = candlestick_ohlc(subplot, self.chart_item.float_index_values_matrix,
+        ls, rs = candlestick_ohlc(subplot, self.chart_item.position_values_matrix,
                                   width=self.width, colorup=self.colorup, colordown=self.colordown, alpha=self.alpha)
         [r.set_edgecolor(self.edgecolor) for r in rs]
+
+
+class BarSubplot(Subplot):
+    def __init__(self, chart_item: QuoteChartItem, key, color='green', alpha=0.75, location=1):
+        super().__init__(chart_item, location)
+        self.key = key
+        self.color = color
+        self.alpha = alpha
+
+    def plot(self, subplot):
+        subplot.bar(self.chart_item.positions,
+                    self.chart_item.get_object_values(chart_object_key=self.key),
+                    color=self.color, alpha=self.alpha)
+
+
+class AreaSubplot(Subplot):
+    def __init__(self, chart_item: QuoteChartItem, key, color='#469df4', alpha=0.8, location=1):
+        super().__init__(chart_item, location)
+        self.key = key
+        self.color = color
+        self.alpha = alpha
+
+    def plot(self, subplot):
+        subplot.fill_between(self.chart_item.positions,
+                             self.chart_item.get_object_values(chart_object_key=self.key),
+                             color=self.color, alpha=self.alpha)
 
 
 class FilledSubplot(Subplot):
@@ -122,12 +148,38 @@ class LineSubplot(Subplot):
                          color=key_color.color, linewidth=key_color.linewidth)
 
 
+class AXHLineSubplot(Subplot):
+    def __init__(self, start_position=0, linewidth=0.5, color='black', location=1):
+        super().__init__(None, location)
+        self.start_position = start_position
+        self.linewidth = linewidth
+        self.color = color
+
+    def plot(self, subplot):
+        subplot.axhline(self.start_position, linewidth=self.linewidth, color=self.color)
+
+
+class MarkerSubplot(Subplot):
+    def __init__(self, chart_item: QuoteChartItem, key, color='r', shape='v', marker_size=3, location=0):
+        super().__init__(chart_item, location)
+        self.key = key
+        self.color = color
+        self.shape = shape
+        self.marker_size = marker_size
+
+    def plot(self, subplot):
+        subplot.plot(self.chart_item.positions,
+                     self.chart_item.get_object_values(chart_object_key=self.key),
+                     '{}{}'.format(self.color, self.shape), markersize=self.marker_size)
+
+
 def create(quotes: CandlestickSubplot, *subplots: Subplot, title='', save_path=None):
     ncharts = 1
     plotters = [quotes]
     for _ in subplots:
         plotters.append(_)
-        ncharts = max(ncharts, _.location)
+    locations = set([_.location for _ in plotters])
+    ncharts = len(locations)
     fig = plt.figure(figsize=(20, 5 * ncharts))
 
     ax1 = None
@@ -177,15 +229,17 @@ if __name__ == '__main__':
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
 
-    size = 400
+    size = 300
     symbol = 'SM'
-    market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
+    market = pkl_to_market('PSE', HISTORICAL_DATA_PATH, symbols=[symbol])
     runner_factory = PickleIndicatorRunnerFactory(INDICATORS_PATH)
     factory = PickleIndicatorFactory(INDICATORS_PATH, market)
 
     df_quotes = market.get_quotes(symbol=symbol)
     df_donchian = runner_factory.create(DonchianChannel).run(symbol=symbol, df_quotes=df_quotes)
     macross = factory.create(MACross)
+    trailing_stops = factory.create(TrailingStops)
+    volume = factory.create(Volume)
 
     df_quotes = df_quotes.iloc[-size:]
     df_donchian = df_donchian.iloc[-size:]
@@ -203,6 +257,15 @@ if __name__ == '__main__':
                                   LineSubplot.Config(MACross.Columns.FAST, '#3af8ff', 2),
                                   LineSubplot.Config(MACross.Columns.SLOW, '#bd3aff', 2))
 
-    create(quote_subplot, donchian_subplot, macross_subplot, title=symbol)
+    trailing_stops_chart_item = indicator_to_quote_chart_item(trailing_stops, TrailingStops.Columns, symbol, -size, -1)
+    trailing_stop_subplots = [MarkerSubplot(trailing_stops_chart_item, key=TrailingStops.Columns.LONG, color='r', shape='v'),
+                              MarkerSubplot(trailing_stops_chart_item, key=TrailingStops.Columns.SHORT, color='g', shape='^')]
 
+    volume_chart_item = indicator_to_quote_chart_item(volume, Volume.Columns, symbol, -size, -1)
+    volume_subplots = [BarSubplot(volume_chart_item, key=Volume.Columns.UP, color='g', alpha=0.75, location=1),
+                       BarSubplot(volume_chart_item, key=Volume.Columns.DOWN, color='r', alpha=0.75, location=1),
+                       AreaSubplot(volume_chart_item, key=Volume.Columns.EMA, location=1)]
+
+    create(quote_subplot, donchian_subplot, macross_subplot,
+           *trailing_stop_subplots, *volume_subplots, title=symbol)
 
