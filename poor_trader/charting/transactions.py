@@ -2,16 +2,15 @@ from enum import Enum
 
 import pandas as pd
 
-from poor_trader import config
+from poor_trader import config, utils
 from poor_trader.backtesting.backtester import TransactionKey
 from poor_trader.backtesting.entity import Action
 from poor_trader.charting.entity import ChartObject, Subplot
 from poor_trader.charting.quotes import df_to_quote_chart_item, CandlestickSubplot, FilledSubplot, \
     indicator_to_quote_chart_item, LineSubplot, create, QuoteChartItem
 from poor_trader.market import pkl_to_market
-from poor_trader.screening import strategy
 from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, PickleIndicatorFactory, DonchianChannel, \
-    MACross
+    MACross, ATRChannel
 
 
 class OpenCloseLineKey(Enum):
@@ -131,7 +130,7 @@ if __name__ == '__main__':
 
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
-    TRANSACTIONS_DATA_PATH = (config.RESOURCES_PATH / 'ColFinancialPortfolio') / 'transactions.pkl'
+    TRANSACTIONS_DATA_PATH = (config.RESOURCES_PATH / 'ColFinancialPortfolio') / 'transactions.csv'
 
     CHARTS_DIR_PATH = TRANSACTIONS_DATA_PATH.parent / 'charts'
 
@@ -139,13 +138,16 @@ if __name__ == '__main__':
     runner_factory = PickleIndicatorRunnerFactory(INDICATORS_PATH)
     factory = PickleIndicatorFactory(INDICATORS_PATH, market)
 
-    df = pd.read_pickle(TRANSACTIONS_DATA_PATH)
+    df = pd.read_csv(TRANSACTIONS_DATA_PATH, index_col=0)
     df[TransactionKey.DATE.value] = pd.to_datetime(df[TransactionKey.DATE.value])
+    df[TransactionKey.ACTION.value] = utils.to_enum(df[TransactionKey.ACTION.value], Action)
+
     transactions = [df.loc[i] for i in df.index.values]
     symbol_oc_line_items = transactions_to_grouped_open_close_line_items(transactions)
 
     donchian = factory.create(DonchianChannel)
-    macross = factory.create(MACross)
+    macross = factory.create(MACross, fast=100, slow=120)
+    atr_channel = factory.create(ATRChannel)
 
     symbols = symbol_oc_line_items.keys()
     for symbol in symbols:
@@ -160,6 +162,11 @@ if __name__ == '__main__':
         donchian_chart_item = indicator_to_quote_chart_item(donchian, DonchianChannel.Columns, symbol, start=start, end=end)
         donchian_subplot = FilledSubplot(donchian_chart_item,
                                          *[_ for _ in DonchianChannel.Columns],
+                                         *['#0033ff', '#6699ff', '#0033ff'])
+
+        atr_channel_chart_item = indicator_to_quote_chart_item(atr_channel, ATRChannel.Columns, symbol, start=start, end=end)
+        atr_channel_subplot = FilledSubplot(atr_channel_chart_item,
+                                         *[_ for _ in ATRChannel.Columns],
                                          *['#9160d1', '#b38be8', '#9160d1'])
 
         macross_chart_item = indicator_to_quote_chart_item(macross, MACross.Columns, symbol, start=start, end=end)
@@ -167,8 +174,8 @@ if __name__ == '__main__':
                                       LineSubplot.Config(MACross.Columns.FAST, '#3af8ff', 2),
                                       LineSubplot.Config(MACross.Columns.SLOW, '#bd3aff', 2))
 
-        oc_subplot = OpenCloseSubplot(quote_chart_item, symbol_oc_line_items[symbol])
+        oc_subplot = OpenCloseSubplot(quote_chart_item, symbol_oc_line_items[symbol], location=0)
 
-        create(quote_subplot, donchian_subplot, macross_subplot, oc_subplot,
+        create(quote_subplot, donchian_subplot, atr_channel_subplot, macross_subplot, oc_subplot,
                title=symbol, save_path=CHARTS_DIR_PATH / '{}.pdf'.format(symbol))
 
