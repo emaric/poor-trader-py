@@ -32,6 +32,21 @@ class ATRChannelBreakout(Strategy):
         ma_cross = self.indicator_factory.create(indicator.MACross, fast=self.fast, slow=self.slow)
         return [atr_channel, ma_cross]
 
+    def entry_condition(self, date, symbol, market: Market, direction=Direction.LONG):
+        if direction == Direction.LONG:
+            return self.is_long(date, symbol)
+        if direction == Direction.SHORT:
+            return self.is_short(date, symbol)
+
+    def reentry_condition(self, date, symbol, market: Market, direction=Direction.LONG):
+        raise NotImplementedError
+
+    def exit_condition(self, date, symbol, market: Market, entry_date, direction=Direction.LONG):
+        exit_direction = Direction.SHORT if direction == Direction.LONG else Direction.LONG
+        exit_tags = self.get_indicator_names(direction=exit_direction, date=date, symbol=symbol, start=entry_date)
+        entry_tags = self.get_indicator_names(direction=direction, date=date, symbol=symbol, start=entry_date)
+        return len([_ for _ in entry_tags if _ not in exit_tags]) <= 0
+
 
 class DonchianChannel(Strategy):
     def __init__(self, indicator_factory: indicator.IndicatorFactory, high=50, low=50, fast=100, slow=120):
