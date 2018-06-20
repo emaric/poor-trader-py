@@ -73,15 +73,14 @@ class EMA(IndicatorRunner):
         c = 2./(self.period + 1.)
         df = pd.DataFrame(columns=['EMA'], index=df_quotes.index)
         _sma = self.factory.create(SMA, period=self.period, field=self.field).run(symbol, df_quotes).dropna()
-        if _sma.empty:
-            return df
-        df.loc[_sma.index.values[0], 'EMA'] = _sma.SMA.values[0]
-        for i in range(1, len(df_quotes)):
-            prev_ema = df.iloc[i-1]
-            if pd.isnull(prev_ema.EMA): continue
-            price = df_quotes.iloc[i]
-            ema_value = c * price[self.field] + (1. - c) * prev_ema.EMA
-            df.loc[df_quotes.index.values[i], 'EMA'] = ema_value
+        if not _sma.empty:
+            df.loc[_sma.index.values[0], 'EMA'] = _sma.SMA.values[0]
+            for i in range(1, len(df_quotes)):
+                prev_ema = df.iloc[i-1]
+                if pd.isnull(prev_ema.EMA): continue
+                price = df_quotes.iloc[i]
+                ema_value = c * price[self.field] + (1. - c) * prev_ema.EMA
+                df.loc[df_quotes.index.values[i], 'EMA'] = ema_value
 
         self.add_direction(df, df_quotes[self.field] > df['EMA'], df_quotes[self.field] < df['EMA'])
         df = utils.round_df(df)
