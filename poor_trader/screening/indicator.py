@@ -145,6 +145,11 @@ class ATR(IndicatorRunner):
 
 
 class ATRChannel(IndicatorRunner):
+    class Columns(Enum):
+        TOP = 'Top'
+        MID = 'Mid'
+        BOTTOM = 'Bottom'
+
     def __init__(self, name='ATRChannel', top=7, bottom=3, sma=150):
         super().__init__(name, 'atr_channel_{}_{}_{}'.format(top, bottom, sma))
         self.top = top
@@ -158,16 +163,20 @@ class ATRChannel(IndicatorRunner):
         df_top_atr = self.factory.create(ATR, period=self.top).run(symbol, df_quotes)
         df_bottom_atr = self.factory.create(ATR, period=self.bottom).run(symbol, df_quotes)
         df_sma = self.factory.create(SMA, period=self.sma).run(symbol, df_quotes)
-        df = pd.DataFrame(columns=['Top', 'Mid', 'Bottom'], index=df_quotes.index)
-        df['Mid'] = df_sma.SMA
-        df['Top'] = df.Mid + df_top_atr.ATR
-        df['Bottom'] = df.Mid - df_bottom_atr.ATR
-        self.add_direction(df, df_quotes['Close'] > df['Top'], df_quotes['Close'] < df['Bottom'])
+        df = pd.DataFrame(columns=[_.value for _ in self.Columns], index=df_quotes.index)
+        df[self.Columns.MID.value] = df_sma.SMA
+        df[self.Columns.TOP.value] = df[self.Columns.MID.value] + df_top_atr.ATR
+        df[self.Columns.BOTTOM.value] = df[self.Columns.MID.value] - df_bottom_atr.ATR
+        self.add_direction(df, df_quotes.Close > df[self.Columns.TOP.value], df_quotes.Close < df[self.Columns.BOTTOM.value])
         df = utils.round_df(df)
         return df
 
 
 class TrailingStops(IndicatorRunner):
+    class Columns(Enum):
+        LONG = 'BuyStops'
+        SHORT = 'SellStops'
+
     def __init__(self, name='TrailingStops', multiplier=4, period=10):
         super().__init__(name, 'trailing_stops_{}_{}'.format(multiplier, period))
         self.multiplier = multiplier
@@ -302,6 +311,12 @@ class MACross(IndicatorRunner):
 
 
 class Volume(IndicatorRunner):
+    class Columns(Enum):
+        VOLUME = 'Volume'
+        EMA = 'EMA'
+        UP = 'Up'
+        DOWN = 'Down'
+
     def __init__(self, name='Volume', period=20):
         super().__init__(name, 'volume_{}'.format(period))
         self.period = period
@@ -314,6 +329,8 @@ class Volume(IndicatorRunner):
         ema = self.factory.create(EMA, period=self.period, field='Volume').run(symbol, df_quotes)
         df['Volume'] = df_quotes.Volume
         df['EMA'] = ema.EMA
+        df[self.Columns.UP.value] = np.where(df_quotes.Open < df_quotes.Close, df_quotes.Volume, 0)
+        df[self.Columns.DOWN.value] = np.where(df_quotes.Open >= df_quotes.Close, df_quotes.Volume, 0)
 
         self.add_direction(df, np.logical_and(df['Volume'] > df['EMA'], df['Volume'].shift(1) < df['EMA'].shift(1)),
                            np.logical_and(df['Volume'] < df['EMA'], df['Volume'].shift(1) > df['EMA'].shift(1)))
@@ -417,6 +434,7 @@ class PickleIndicatorRunnerWrapper(object):
         df = self.runner.run(symbol, df_quotes, df_indicator)
         save_path = self.get_save_path(symbol, df_quotes)
         utils.makedirs(save_path.parent)
+        print('Saving {}'.format(save_path))
         df.to_pickle(save_path)
         return df
 
@@ -470,6 +488,9 @@ class Indicator(entity.Indicator):
     def __init__(self, name, *attributes: Attribute):
         super().__init__(name, attributes)
 
+    def __str__(self):
+        return '{}: {}'.format(self.name, self.get_attribute_keys())
+
     def get_attribute(self, key):
         if type(self.attributes) == dict:
             if key in self.attributes.keys():
@@ -500,14 +521,22 @@ class PickleIndicatorFactory(IndicatorFactory):
     def create(self, runner_class, *args, **kwargs):
         runner = self.runner_factory.create(runner_class, *args, **kwargs)
         indicator = Indicator(runner.unique_name, dict())
+        print('Running {} for all symbols in the market...'.format(runner.unique_name))
         for symbol in self.market.get_symbols():
             df_quotes = self.market.get_quotes(symbol=symbol)
+            if df_quotes.empty:
+                continue
             df = runner.run(symbol, df_quotes)
             for col in df.columns:
                 if not type(indicator.attributes) == dict:
                     indicator.attributes = dict()
                 indicator.attributes[col] = indicator.get_attribute(col) or Attribute(pd.DataFrame())
-                indicator.get_attribute(col).df_values[symbol] = df[col]
+                df_symbol = pd.DataFrame()
+                df_symbol[symbol] = df[col]
+                indicator.get_attribute(col).df_values = indicator.get_attribute(col).df_values.join(df_symbol, how='outer')
+                indicator.get_attribute(col).df_values.sort_index()
+
+        print('Finished running {} for all symbols in the market.'.format(runner.unique_name))
         return indicator
 
 
