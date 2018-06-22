@@ -1,3 +1,4 @@
+import datetime
 import os
 from path import Path
 
@@ -24,3 +25,12 @@ TEMP_PATH = ROOT_PATH.parent / 'poor-trader-tmp'
 TEST_TEMP_PATH = TEST_RESOURCES_PATH / 'tmp'
 
 BOARD_LOT_CSV_PATH = RESOURCES_PATH / 'boardlot.csv'
+
+APP_DIR_NAME = 'PoorTrader'
+
+BACKTESTING_DIR_NAME = 'Backtest'
+
+
+def generate_backtesting_results_dir_path():
+    datetime_tag = datetime.datetime.now().strftime(DATETIME_FORMAT)
+    return Path(os.path.expanduser('~/' + APP_DIR_NAME)) / '{}_{}'.format(BACKTESTING_DIR_NAME, datetime_tag)
