@@ -1,10 +1,10 @@
 import abc
-from enum import Enum
+from enum import Enum, auto
 
 
 class Action(Enum):
-    OPEN = 'OPEN'
-    CLOSE = 'CLOSE'
+    OPEN = auto()
+    CLOSE = auto()
 
 
 class Backtester(object):
@@ -23,7 +23,7 @@ class Account(object):
         self.buying_power = self.cash
 
 
-class Transaction(Enum):
+class Transaction(object):
     def __init__(self, action, date, symbol, shares, price, value, tags):
         self.action = action
         self.date = date
