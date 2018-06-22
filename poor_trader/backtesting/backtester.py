@@ -2,7 +2,7 @@ from enum import Enum
 
 import pandas as pd
 
-from poor_trader import config, utils
+from poor_trader import utils
 from poor_trader.backtesting.entity import Position, Action, Backtester, Portfolio
 from poor_trader.market import Market
 
