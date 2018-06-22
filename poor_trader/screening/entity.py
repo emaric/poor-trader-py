@@ -104,7 +104,7 @@ class Strategy(object):
         if not self.indicators:
             return False
         elif type(self.indicators) == list:
-            return [_ for _ in self.indicators if _.is_short(date, symbol, start=start)]
+            return len(self.indicators) == len([_ for _ in self.indicators if _.is_short(date, symbol, start=start)])
         else:
             raise NotImplementedError
 
