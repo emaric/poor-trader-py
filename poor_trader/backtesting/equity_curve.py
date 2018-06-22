@@ -45,15 +45,23 @@ class DefaultEquityCurve(EquityCurve):
         return self.df.index.values
 
     def get_equity(self, date=None):
+        if date is None:
+            return self.df[EquityCurveKey.EQUITY.value]
         return self.df.loc[date][EquityCurveKey.EQUITY.value]
 
     def get_cash(self, date=None):
+        if date is None:
+            return self.df[EquityCurveKey.CASH.value]
         return self.df.loc[date][EquityCurveKey.CASH.value]
 
     def get_drawdown(self, date=None):
+        if date is None:
+            return self.df[EquityCurveKey.DRAWDOWN.value]
         return self.df.loc[date][EquityCurveKey.DRAWDOWN.value]
 
     def get_drawdown_percent(self, date=None):
+        if date is None:
+            return self.df[EquityCurveKey.DRAWDOWN_PERCENT.value]
         return self.df.loc[date][EquityCurveKey.DRAWDOWN_PERCENT.value]
 
     def save_to_file(self, dir_path):
