@@ -9,7 +9,7 @@ from poor_trader.backtesting.backtester import DataFrameBacktester
 from poor_trader.backtesting.broker import COLFinancial
 from poor_trader.backtesting.entity import Account
 from poor_trader.backtesting.equity_curve import DefaultEquityCurve
-from poor_trader.backtesting.portfolio.colfinancial import DefaultPortfolio
+from poor_trader.backtesting.portfolio import DefaultPortfolio
 from poor_trader.backtesting.position_sizing import EquityPercentage
 from poor_trader.market import csv_to_market
 from poor_trader.screening.indicator import PickleIndicatorFactory
@@ -19,6 +19,7 @@ from tests import test_indicator
 
 class TestBacktesting(unittest.TestCase):
     def setUp(self):
+        self.portfolio = None
         self.tearDown()
         self.market = csv_to_market('TestMarket', test_indicator.INTRADAY_HISTORICAL_DATA_PATH)
         self.account = Account(100000)
@@ -36,6 +37,9 @@ class TestBacktesting(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(config.TEST_TEMP_PATH):
             shutil.rmtree(config.TEST_TEMP_PATH)
+
+        if self.portfolio and os.path.exists(self.portfolio.save_dir_path):
+            shutil.rmtree(self.portfolio.save_dir_path)
 
     def test_backtester(self):
         backtester = DataFrameBacktester(self.portfolio)

@@ -2,7 +2,6 @@
 import datetime
 import numpy as np
 import pandas as pd
-from poor_trader.backtesting import chart
 from poor_trader import utils
 
 TRADE_DAYS_PER_YEAR = 244
