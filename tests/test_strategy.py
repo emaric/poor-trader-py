@@ -29,11 +29,11 @@ class TestStrategy(unittest.TestCase):
             if len(long) > 0:
                 for symbol in long:
                     self.assertEqual([_.name for _ in atr_channel_breakout.indicators],
-                                     atr_channel_breakout.get_long_indicator_names(date, symbol))
+                                     atr_channel_breakout.get_long_indicator_names(date, symbol), msg=symbol)
             if len(short) > 0:
                 for symbol in short:
                     self.assertEqual([_.name for _ in atr_channel_breakout.indicators],
-                                     atr_channel_breakout.get_short_indicator_names(date, symbol))
+                                     atr_channel_breakout.get_short_indicator_names(date, symbol), msg=symbol)
 
 
 if __name__ == '__main__':
