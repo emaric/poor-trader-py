@@ -47,7 +47,6 @@ class DataFrameMarket(Market):
     def __init__(self, df_historical_data, symbols=None, name='DataFrameMarket'):
         super().__init__(symbols, name)
         self.__df_historical_data__ = df_historical_data
-        self.__symbols__ = symbols
 
     def get_dates(self, symbols=None, start=None, end=None):
         df = self.__df_historical_data__.copy()
