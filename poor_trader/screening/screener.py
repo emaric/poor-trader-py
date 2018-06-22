@@ -74,7 +74,7 @@ class DataFrameScreener(Screener):
 
 
 if __name__ == '__main__':
-    INDICATORS_PATH = config.TEMP_PATH / 'indicators'
+    INDICATORS_PATH = (config.TEMP_PATH / 'screener') / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
     print('INDICATOR_PATH', INDICATORS_PATH)
 
