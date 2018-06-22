@@ -472,7 +472,11 @@ class Attribute(entity.Attribute):
             if date not in df.index:
                 return None
             return df.loc[date]
-        return [_ for _ in df]
+
+        if symbol is not None:
+            return df.values
+
+        return df
 
     def get_indices(self, symbol=None, start=None, end=None):
         df = self.df_values.copy()
