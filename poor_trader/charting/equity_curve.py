@@ -7,6 +7,7 @@ import numpy as np
 from matplotlib import pylab as plt
 
 from poor_trader import config
+from poor_trader.backtesting.equity_curve import DefaultEquityCurve
 from poor_trader.charting.entity import ChartObject
 
 plt.style.use('ggplot')
@@ -92,6 +93,27 @@ def create(data: EquityCurveChart,
         plt.show()
     plt.clf()
     plt.close(fig)
+
+
+def read_equity_curve_csv(path):
+    df = pd.read_csv(path, index_col=0, parse_dates=True)
+    return DefaultEquityCurve(df=df)
+
+
+def create_equity_curve_chart(equity_curve: DefaultEquityCurve):
+    chart_objects = [EquityCurveChartObject(equity=equity_curve.get_equity(date),
+                                            cash=equity_curve.get_cash(date),
+                                            drawdown=equity_curve.get_drawdown(date),
+                                            drawdown_percent=equity_curve.get_drawdown_percent(date))
+             for date in equity_curve.get_dates()]
+    index_labels = [date.strftime(config.DATETIME_FORMAT) for date in equity_curve.get_dates()]
+    return EquityCurveChart(indices=equity_curve.get_dates(), equity_curve_chart_object=chart_objects, index_labels=index_labels)
+
+
+def csv_to_chart(equity_curve_csv_path, save_path=None):
+    equity_curve = read_equity_curve_csv(equity_curve_csv_path)
+    equity_curve_chart = create_equity_curve_chart(equity_curve)
+    create(equity_curve_chart, fpath=save_path)
 
 
 if __name__ == '__main__':
