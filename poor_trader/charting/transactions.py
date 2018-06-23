@@ -7,7 +7,7 @@ from poor_trader.backtesting.backtester import TransactionKey
 from poor_trader.backtesting.entity import Action
 from poor_trader.charting.entity import ChartObject, Subplot
 from poor_trader.charting.quotes import df_to_quote_chart_item, CandlestickSubplot, FilledSubplot, \
-    indicator_to_quote_chart_item, LineSubplot, create, QuoteChartItem
+    indicator_to_quote_chart_item, LineSubplot, create, QuoteChartItem, OHLC
 from poor_trader.market import pkl_to_market
 from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, PickleIndicatorFactory, DonchianChannel, \
     MACross, ATRChannel
@@ -44,24 +44,24 @@ class OpenCloseSubplot(Subplot):
 
     def __init__(self, quotes_chart_item: QuoteChartItem, open_close_objects: OpenCloseLineObject, config=Config(), location=0):
         super().__init__(quotes_chart_item, location)
-        self.quotes_chart_item = quote_chart_item
+        self.quotes_chart_item = quotes_chart_item
         self.open_close_objects = open_close_objects
         self.config = config
 
     def plot(self, subplot):
-        last_position = quote_chart_item.positions[-1]
-        last_price = quote_chart_item.get_object_by_position(last_position)[OHLC.CLOSE.value]
+        last_position = self.quotes_chart_item.positions[-1]
+        last_price = self.quotes_chart_item.get_object_by_position(last_position)[OHLC.CLOSE.value]
         for oc in self.open_close_objects:
-            open_position = quote_chart_item.get_position(oc[OpenCloseLineKey.OPEN_INDEX.value])
+            open_position = self.quotes_chart_item.get_position(oc[OpenCloseLineKey.OPEN_INDEX.value])
             close_index = oc[OpenCloseLineKey.CLOSE_INDEX.value]
-            close_position = last_position if close_index is None else quote_chart_item.get_position(close_index)
+            close_position = last_position if close_index is None else self.quotes_chart_item.get_position(close_index)
 
             open_price = oc[OpenCloseLineKey.OPEN_PRICE.value]
             close_price = oc[OpenCloseLineKey.CLOSE_PRICE.value]
             close_price = last_price if close_price is None else close_price
 
-            high = max(quote_chart_item.get_object_values(chart_object_key=OHLC.HIGH))
-            low = min(quote_chart_item.get_object_values(chart_object_key=OHLC.LOW))
+            high = max(self.quotes_chart_item.get_object_values(chart_object_key=OHLC.HIGH))
+            low = min(self.quotes_chart_item.get_object_values(chart_object_key=OHLC.LOW))
             marker_space = (high - low) / 30
 
             subplot.plot((open_position, close_position), (open_price, close_price),
@@ -125,12 +125,37 @@ def transactions_to_grouped_open_close_line_items(transactions, key=TransactionK
     return return_value
 
 
-if __name__ == '__main__':
-    from poor_trader.charting.quotes import OHLC
+def read_transactions_csv(path):
+    df = pd.read_csv(path, index_col=0)
+    df[TransactionKey.DATE.value] = pd.to_datetime(df[TransactionKey.DATE.value])
+    df[TransactionKey.ACTION.value] = utils.to_enum(df[TransactionKey.ACTION.value], Action)
+    return [df.loc[i] for i in df.index.values]
 
+
+def csv_to_chart(market, transactions_csv_path, save_dir_path=None):
+    transactions = read_transactions_csv(transactions_csv_path)
+    # TODO: include indicators in the chart based on the transaction tags
+    symbol_oc_line_items_dict = transactions_to_grouped_open_close_line_items(transactions)
+    for symbol in symbol_oc_line_items_dict.keys():
+        oc_line_items = symbol_oc_line_items_dict[symbol]
+        start = min([_[OpenCloseLineKey.OPEN_INDEX.value] for _ in oc_line_items])
+        try:
+            end = max([_[OpenCloseLineKey.CLOSE_INDEX.value] for _ in oc_line_items])
+        except:
+            end = market.get_dates()[-1]
+        df_quotes = market.get_quotes(symbol=symbol, start=start, end=end)
+        quote_chart_item = df_to_quote_chart_item(df_quotes, OHLC)
+        quote_subplot = CandlestickSubplot(quote_chart_item)
+        oc_subplot = OpenCloseSubplot(quote_chart_item, oc_line_items)
+        save_path = None if save_dir_path is None else save_dir_path / '{}.pdf'.format(symbol)
+        print('Creating chart for', symbol)
+        create(quote_subplot, oc_subplot, title=symbol, save_path=save_path)
+
+
+if __name__ == '__main__':
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
-    TRANSACTIONS_DATA_PATH = (config.RESOURCES_PATH / 'ColFinancialPortfolio') / 'transactions.csv'
+    TRANSACTIONS_DATA_PATH = ((config.RESOURCES_PATH / 'investa') / 'ColFinancialPortfolio') / 'transactions.csv'
 
     CHARTS_DIR_PATH = TRANSACTIONS_DATA_PATH.parent / 'charts'
 
@@ -138,11 +163,7 @@ if __name__ == '__main__':
     runner_factory = PickleIndicatorRunnerFactory(INDICATORS_PATH)
     factory = PickleIndicatorFactory(INDICATORS_PATH, market)
 
-    df = pd.read_csv(TRANSACTIONS_DATA_PATH, index_col=0)
-    df[TransactionKey.DATE.value] = pd.to_datetime(df[TransactionKey.DATE.value])
-    df[TransactionKey.ACTION.value] = utils.to_enum(df[TransactionKey.ACTION.value], Action)
-
-    transactions = [df.loc[i] for i in df.index.values]
+    transactions = read_transactions_csv(TRANSACTIONS_DATA_PATH)
     symbol_oc_line_items = transactions_to_grouped_open_close_line_items(transactions)
 
     donchian = factory.create(DonchianChannel)
@@ -151,9 +172,8 @@ if __name__ == '__main__':
 
     symbols = symbol_oc_line_items.keys()
     for symbol in symbols:
-        df_symbol_transactions = df[df[TransactionKey.SYMBOL.value] == symbol]
-        start = df_symbol_transactions[TransactionKey.DATE.value].min()
-        end = None
+        start = pd.to_datetime('2013-08-20')
+        end = pd.to_datetime('2013-11-23')
         df_quotes = market.get_quotes(symbol=symbol, start=start, end=end)
 
         quote_chart_item = df_to_quote_chart_item(df_quotes, OHLC)
