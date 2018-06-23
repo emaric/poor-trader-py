@@ -12,6 +12,8 @@ PICKLE_EXTENSION = 'pkl'
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
+DATETIME_FORMAT_FILENAME_SAFE = '%Y-%m-%d_%H%M%S'
+
 DATE_FORMAT = '%Y-%m-%d'
 
 ROOT_PATH = Path(os.path.dirname(__file__)).parent
@@ -30,7 +32,11 @@ APP_DIR_NAME = 'PoorTrader'
 
 BACKTESTING_DIR_NAME = 'Backtest'
 
+EQUITY_CURVE_FILENAME = 'equity_curve.csv'
+
+TRANSACTIONS_FILENAME = 'transactions.csv'
+
 
 def generate_backtesting_results_dir_path():
-    datetime_tag = datetime.datetime.now().strftime(DATETIME_FORMAT)
+    datetime_tag = datetime.datetime.now().strftime(DATETIME_FORMAT_FILENAME_SAFE)
     return Path(os.path.expanduser('~/' + APP_DIR_NAME)) / '{}_{}'.format(BACKTESTING_DIR_NAME, datetime_tag)
