@@ -3,7 +3,7 @@ from enum import Enum
 
 import pandas as pd
 
-from poor_trader import utils, config
+from poor_trader import utils
 
 from poor_trader.backtesting.entity import EquityCurve, Account
 
@@ -42,7 +42,7 @@ class DefaultEquityCurve(EquityCurve):
         self.df = utils.round_df(self.df)
 
     def get_dates(self):
-        return self.df.index.values
+        return pd.to_datetime(self.df.index.values)
 
     def get_equity(self, date=None):
         if date is None:
