@@ -6,8 +6,8 @@ from poor_trader import config, utils
 from poor_trader.backtesting.backtester import TransactionKey
 from poor_trader.backtesting.entity import Action
 from poor_trader.charting.entity import ChartObject, Subplot
-from poor_trader.charting.quotes import df_to_quote_chart_item, CandlestickSubplot, FilledSubplot, \
-    indicator_to_quote_chart_item, LineSubplot, create, QuoteChartItem, OHLC
+from poor_trader.charting.quotes.base import df_to_quote_chart_item, CandlestickSubplot, FilledSubplot, \
+    indicator_to_quote_chart_item, LineSubplot, create, DefaultChartItem, OHLC
 from poor_trader.market import pkl_to_market
 from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, PickleIndicatorFactory, DonchianChannel, \
     MACross, ATRChannel
@@ -42,7 +42,7 @@ class OpenCloseSubplot(Subplot):
             self.line_style = line_style
             self.open_line_style = open_line_style
 
-    def __init__(self, quotes_chart_item: QuoteChartItem, open_close_objects: OpenCloseLineObject, config=Config(), location=0):
+    def __init__(self, quotes_chart_item: DefaultChartItem, open_close_objects: OpenCloseLineObject, config=Config(), location=0):
         super().__init__(quotes_chart_item, location)
         self.quotes_chart_item = quotes_chart_item
         self.open_close_objects = open_close_objects
@@ -153,6 +153,7 @@ def csv_to_chart(market, transactions_csv_path, save_dir_path=None):
 
 
 if __name__ == '__main__':
+    from poor_trader.charting.quotes.subplots import indicators as subplots_indicators
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
     TRANSACTIONS_DATA_PATH = ((config.RESOURCES_PATH / 'investa') / 'ColFinancialPortfolio') / 'transactions.csv'
@@ -196,6 +197,10 @@ if __name__ == '__main__':
 
         oc_subplot = OpenCloseSubplot(quote_chart_item, symbol_oc_line_items[symbol], location=0)
 
-        create(quote_subplot, donchian_subplot, atr_channel_subplot, macross_subplot, oc_subplot,
-               title=symbol, save_path=CHARTS_DIR_PATH / '{}.pdf'.format(symbol))
+        create(quote_subplot,
+               *subplots_indicators.create(donchian, DonchianChannel.Columns, symbol, start, end),
+               *subplots_indicators.create(atr_channel, ATRChannel.Columns, symbol, start, end),
+               *subplots_indicators.create(macross, MACross.Columns, symbol, start, end),
+               oc_subplot,
+               title=symbol)
 
