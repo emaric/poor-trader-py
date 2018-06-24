@@ -1,5 +1,6 @@
 from poor_trader.charting.quotes.base import DefaultChartItem, LineSubplot, FilledSubplot
 from poor_trader.screening.entity import Indicator
+from poor_trader.screening.indicator import MACross, DonchianChannel, ATRChannel
 
 
 def create(indicator: Indicator, keys_enum_class, symbol, start=None, end=None) -> list:
