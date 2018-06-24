@@ -2,7 +2,6 @@ from enum import Enum
 
 import numpy as np
 import pandas as pd
-import matplotlib.dates as mdates
 from matplotlib import pylab as plt
 from matplotlib.finance import candlestick_ohlc
 
@@ -22,7 +21,7 @@ class OHLC(Enum):
     CLOSE = 'Close'
 
 
-class QuoteChartItem(ChartItem):
+class DefaultChartItem(ChartItem):
     INDEX = 'Index'
 
     def __init__(self, indices: list, chart_object_enum: Enum, chart_objects: list, df=None):
@@ -69,7 +68,7 @@ class QuoteChartItem(ChartItem):
 
 
 class CandlestickSubplot(Subplot):
-    def __init__(self, chart_item: QuoteChartItem, width=0.5, colorup='g', colordown='r', edgecolor='b', alpha=0.75, location=0):
+    def __init__(self, chart_item: DefaultChartItem, width=0.5, colorup='g', colordown='r', edgecolor='b', alpha=0.75, location=0):
         super().__init__(chart_item, location)
         self.width = width
         self.colorup = colorup
@@ -84,7 +83,7 @@ class CandlestickSubplot(Subplot):
 
 
 class BarSubplot(Subplot):
-    def __init__(self, chart_item: QuoteChartItem, key, color='green', alpha=0.75, location=1):
+    def __init__(self, chart_item: DefaultChartItem, key, color='green', alpha=0.75, location=1):
         super().__init__(chart_item, location)
         self.key = key
         self.color = color
@@ -97,7 +96,7 @@ class BarSubplot(Subplot):
 
 
 class AreaSubplot(Subplot):
-    def __init__(self, chart_item: QuoteChartItem, key, color='#469df4', alpha=0.8, location=1):
+    def __init__(self, chart_item: DefaultChartItem, key, color='#469df4', alpha=0.8, location=1):
         super().__init__(chart_item, location)
         self.key = key
         self.color = color
@@ -110,7 +109,7 @@ class AreaSubplot(Subplot):
 
 
 class FilledSubplot(Subplot):
-    def __init__(self, chart_item: QuoteChartItem,
+    def __init__(self, chart_item: DefaultChartItem,
                  top_key, mid_key, bottom_key,
                  top_color, mid_color, bottom_color, location=0):
         super().__init__(chart_item, location)
@@ -138,7 +137,7 @@ class LineSubplot(Subplot):
             self.color = color
             self.linewidth = linewidth
 
-    def __init__(self, chart_item: QuoteChartItem, *configs: Config, location=0):
+    def __init__(self, chart_item: DefaultChartItem, *configs: Config, location=0):
         super().__init__(chart_item, location)
         self.configs = configs
 
@@ -160,7 +159,7 @@ class AXHLineSubplot(Subplot):
 
 
 class MarkerSubplot(Subplot):
-    def __init__(self, chart_item: QuoteChartItem, key, color='r', shape='v', marker_size=3, location=0):
+    def __init__(self, chart_item: DefaultChartItem, key, color='r', shape='v', marker_size=3, location=0):
         super().__init__(chart_item, location)
         self.key = key
         self.color = color
@@ -174,7 +173,6 @@ class MarkerSubplot(Subplot):
 
 
 def create(quotes: CandlestickSubplot, *subplots: Subplot, title='', save_path=None):
-    ncharts = 1
     plotters = [quotes]
     for _ in subplots:
         plotters.append(_)
@@ -214,7 +212,7 @@ def create(quotes: CandlestickSubplot, *subplots: Subplot, title='', save_path=N
 
 def df_to_quote_chart_item(df: pd.DataFrame, keys_enum_class):
     chart_objects = [df.loc[i] for i in df.index.values]
-    return QuoteChartItem(df.index.values, keys_enum_class, chart_objects, df=df)
+    return DefaultChartItem(df.index.values, keys_enum_class, chart_objects, df=df)
 
 
 def indicator_to_quote_chart_item(indicator_instance: Indicator, keys_enum_class, symbol, istart=None, iend=None, start=None, end=None):
@@ -222,7 +220,7 @@ def indicator_to_quote_chart_item(indicator_instance: Indicator, keys_enum_class
     indices = indices[istart:] if istart is not None else indices
     indices = indices[:iend] if iend is not None else indices
     chart_objects = [indicator_instance.get_attribute_value(date=date, symbol=symbol) for date in indices]
-    return QuoteChartItem(indices, keys_enum_class, chart_objects)
+    return DefaultChartItem(indices, keys_enum_class, chart_objects)
 
 
 if __name__ == '__main__':
