@@ -1,5 +1,7 @@
 import abc
 import os
+import re
+import inspect
 from enum import Enum
 
 import numpy as np
@@ -24,9 +26,11 @@ class IndicatorRunnerFactory(object):
 class IndicatorRunner(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, unique_name):
+    def __init__(self, name, param_values):
         self.name = name
-        self.unique_name = unique_name
+        self.unique_name = self.__init_unique_name__(self.name,
+                                                     inspect.signature(self.__init__).parameters,
+                                                     param_values)
         self.factory = IndicatorRunnerFactory()
 
     @abc.abstractmethod
@@ -44,10 +48,20 @@ class IndicatorRunner(object):
             return False
         return pd.Index.equals(df_quotes.index, df_indicator.index)
 
+    @staticmethod
+    def __init_unique_name__(name, parameters, param_values):
+        return str(Path(name + '_' + '_'.join([str(param_values[parameter]) for parameter in parameters])))
+
+    @classmethod
+    def is_unique_name_a_match(cls, unique_name):
+        parameters = [_ for _ in inspect.signature(cls.__init__).parameters if _ != 'self']
+        sub_strs = unique_name.split('_')
+        return sub_strs[0] == cls.__name__ and len(parameters) == len(sub_strs) - 1
+
 
 class STDEV(IndicatorRunner):
-    def __init__(self, name='STDEV', period=10, field='Close'):
-        super().__init__(name, 'stdev_{}_{}'.format(field, period))
+    def __init__(self, period=10, field='Close'):
+        super().__init__(self.__class__.__name__, locals())
         self.period = period
         self.field = field
 
@@ -62,8 +76,8 @@ class STDEV(IndicatorRunner):
 
 
 class EMA(IndicatorRunner):
-    def __init__(self, name='EMA', period=10, field='Close'):
-        super().__init__(name, 'ema_{}_{}'.format(field, period))
+    def __init__(self, period=10, field='Close'):
+        super().__init__(self.__class__.__name__, locals())
         self.period = period
         self.field = field
 
@@ -88,8 +102,8 @@ class EMA(IndicatorRunner):
 
 
 class SMA(IndicatorRunner):
-    def __init__(self, name='SMA', period=10, field='Close'):
-        super().__init__(name, 'sma_{}_{}'.format(field, period))
+    def __init__(self, period=10, field='Close'):
+        super().__init__(self.__class__.__name__, locals())
         self.period = period
         self.field = field
 
@@ -105,8 +119,8 @@ class SMA(IndicatorRunner):
 
 
 class ATR(IndicatorRunner):
-    def __init__(self, name='ATR', period=10):
-        super().__init__(name, 'atr_{}'.format(period))
+    def __init__(self, period=10):
+        super().__init__(self.__class__.__name__, locals())
         self.period = period
 
     def true_range(self, df_quotes):
@@ -149,8 +163,8 @@ class ATRChannel(IndicatorRunner):
         MID = 'Mid'
         BOTTOM = 'Bottom'
 
-    def __init__(self, name='ATRChannel', top=7, bottom=3, sma=150):
-        super().__init__(name, 'atr_channel_{}_{}_{}'.format(top, bottom, sma))
+    def __init__(self, top=7, bottom=3, sma=150):
+        super().__init__(self.__class__.__name__, locals())
         self.top = top
         self.bottom = bottom
         self.sma = sma
@@ -176,8 +190,8 @@ class TrailingStops(IndicatorRunner):
         LONG = 'BuyStops'
         SHORT = 'SellStops'
 
-    def __init__(self, name='TrailingStops', multiplier=4, period=10):
-        super().__init__(name, 'trailing_stops_{}_{}'.format(multiplier, period))
+    def __init__(self, multiplier=4, period=10):
+        super().__init__(self.__class__.__name__, locals())
         self.multiplier = multiplier
         self.period = period
 
@@ -235,8 +249,8 @@ class DonchianChannel(IndicatorRunner):
         MID = 'Mid'
         LOW = 'Low'
 
-    def __init__(self, name='DonchianChannel', high=50, low=50):
-        super().__init__(name, 'donchian_channel_{}_{}'.format(high, low))
+    def __init__(self, high=50, low=50):
+        super().__init__(self.__class__.__name__, locals())
         self.high = high
         self.low = low
 
@@ -258,8 +272,8 @@ class DonchianChannel(IndicatorRunner):
 
 
 class MACD(IndicatorRunner):
-    def __init__(self, name='MACD', fast=12, slow=26, signal=9):
-        super().__init__(name, 'macd_{}_{}_{}'.format(fast, slow, signal))
+    def __init__(self, fast=12, slow=26, signal=9):
+        super().__init__(self.__class__.__name__, locals())
         self.fast = fast
         self.slow = slow
         self.signal = signal
@@ -288,8 +302,8 @@ class MACross(IndicatorRunner):
         FAST_ON_TOP = 'FastCrossoverSlow'
         SLOW_ON_TOP = 'SlowCrossoverFast'
 
-    def __init__(self, name='MACross', fast=40, slow=60):
-        super().__init__(name, 'ma_cross_{}_{}'.format(fast, slow))
+    def __init__(self, fast=40, slow=60):
+        super().__init__(self.__class__.__name__, locals())
         self.fast = fast
         self.slow = slow
 
@@ -316,8 +330,8 @@ class Volume(IndicatorRunner):
         UP = 'Up'
         DOWN = 'Down'
 
-    def __init__(self, name='Volume', period=20):
-        super().__init__(name, 'volume_{}'.format(period))
+    def __init__(self, period=20):
+        super().__init__(self.__class__.__name__, locals())
         self.period = period
 
     def run(self, symbol, df_quotes, df_indicator=None):
@@ -338,8 +352,8 @@ class Volume(IndicatorRunner):
 
 
 class TrendStrength(IndicatorRunner):
-    def __init__(self, name='TrendStrength', start=40, end=150, step=5):
-        super().__init__(name, 'trend_strength_{}_{}_{}'.format(start, end, step))
+    def __init__(self, start=40, end=150, step=5):
+        super().__init__(self.__class__.__name__, locals())
         self.start = start
         self.end = end
         self.step = step
@@ -366,8 +380,8 @@ class TrendStrength(IndicatorRunner):
 
 
 class BollingerBand(IndicatorRunner):
-    def __init__(self, name='BollingerBand', period=50, stdev=2):
-        super().__init__(name, 'bollinger_band_{}_{}'.format(period, stdev))
+    def __init__(self, period=50, stdev=2):
+        super().__init__(self.__class__.__name__, locals())
         self.period = period
         self.stdev = stdev
 
@@ -388,8 +402,8 @@ class BollingerBand(IndicatorRunner):
 
 
 class RSI(IndicatorRunner):
-    def __init__(self, name='RSI', period=20, field='Close'):
-        super().__init__(name, 'rsi_{}_{}'.format(field, period))
+    def __init__(self, period=20, field='Close'):
+        super().__init__(self.__class__.__name__, locals())
         self.period = period
         self.field = field
 

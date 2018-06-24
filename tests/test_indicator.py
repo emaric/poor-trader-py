@@ -75,6 +75,9 @@ class TestIndicatorRunner(unittest.TestCase):
             self.assertTrue(os.path.exists(expected_dir_path))
             self.assertIsNotNone(_indicator.get_attribute(Direction.__name__), msg=runner_class.__name__)
 
+    def test_is_unique_name_a_match(self):
+        self.fail('TODO')
+
 
 if __name__ == '__main__':
     unittest.main()
