@@ -385,17 +385,17 @@ class TrendStrength(IndicatorRunner):
         self.start = start
         self.end = end
         self.step = step
+        self.columns = [x for x in range(self.start, self.end, self.step)]
+        self.columns += [self.end]
 
     def run(self, symbol, df_quotes, df_indicator=None):
         if self.is_updated(df_quotes, df_indicator):
             return df_indicator
 
         df = pd.DataFrame(index=df_quotes.index)
-        columns = [x for x in range(self.start, self.end, self.step)]
-        columns += [self.end]
-        for col in columns:
+        for col in self.columns:
             df['{}{}'.format(self.Columns.SMA.value, col)] = self.factory.create(SMA, period=col).run(symbol, df_quotes)[self.Columns.SMA.value]
-        col_size = len(columns)
+        col_size = len(self.columns)
         df_comparison = df.lt(df_quotes.Close, axis=0)
         df_comparison[self.Columns.COUNT_SMA_BELOW_PRICE.value] = round(100 * (df_comparison.filter(like=self.Columns.SMA.value) == True).astype(int).sum(axis=1) / col_size)
         df_comparison[self.Columns.COUNT_SMA_ABOVE_PRICE.value] = round(100 * -(df_comparison.filter(like=self.Columns.SMA.value) == False).astype(int).sum(axis=1) / col_size)

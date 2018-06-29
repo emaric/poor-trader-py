@@ -80,6 +80,7 @@ class TestIndicatorRunner(unittest.TestCase):
                            'SMA_100_High': indicator.SMA(100, 'High'),
                            'MACross_100_150': indicator.MACross(100, 150),
                            'ATR_8': indicator.ATR(8),
+                           'TrendStrength_20_200_10': indicator.TrendStrength(20, 200, 10),
                            'ATRChannel_8_4_150': indicator.ATRChannel(8, 4, 150)}
 
         factory = DefaultIndicatorRunnerFactory(TEMP_INDICATORS_PATH)
