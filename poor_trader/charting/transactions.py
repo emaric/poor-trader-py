@@ -10,7 +10,8 @@ from poor_trader.charting.quotes.base import df_to_quote_chart_item, Candlestick
     indicator_to_quote_chart_item, LineSubplot, create, DefaultChartItem, OHLC
 from poor_trader.market import pkl_to_market
 from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, PickleIndicatorFactory, DonchianChannel, \
-    MACross, ATRChannel
+    MACross, ATRChannel, IndicatorFactory, IndicatorRunnerFactory
+from poor_trader.charting.quotes.subplots import indicators as plot_i
 
 
 class OpenCloseLineKey(Enum):
@@ -132,9 +133,26 @@ def read_transactions_csv(path):
     return [df.loc[i] for i in df.index.values]
 
 
-def csv_to_chart(market, transactions_csv_path, save_dir_path=None):
+def create_indicator_subplots(transactions, indicator_factory: IndicatorFactory, indicator_runner_factory: IndicatorRunnerFactory, start=None, end=None):
+    subplots = []
+    indicators_unique_names = set()
+    symbol = transactions[0][TransactionKey.SYMBOL.value]
+    for t in transactions:
+        tags = t[TransactionKey.TAGS.value]
+        for indicator_name in tags.split(' '):
+            indicators_unique_names.add(indicator_name)
+    for unique_name in indicators_unique_names:
+        indicator = indicator_factory.create_by_unique_name(unique_name)
+        indicator_runner_class = indicator_runner_factory.create_by_unique_name(unique_name)
+        _subplots = plot_i.create(indicator, indicator_runner_class.Columns, symbol, start=start, end=end)
+        subplots = subplots + _subplots
+    return subplots
+
+
+def csv_to_chart(market, transactions_csv_path, save_dir_path=None,
+                 indicator_factory: IndicatorFactory=None,
+                 indicator_runner_factory: IndicatorRunnerFactory=None):
     transactions = read_transactions_csv(transactions_csv_path)
-    # TODO: include indicators in the chart based on the transaction tags
     symbol_oc_line_items_dict = transactions_to_grouped_open_close_line_items(transactions)
     for symbol in symbol_oc_line_items_dict.keys():
         oc_line_items = symbol_oc_line_items_dict[symbol]
@@ -146,14 +164,19 @@ def csv_to_chart(market, transactions_csv_path, save_dir_path=None):
         df_quotes = market.get_quotes(symbol=symbol, start=start, end=end)
         quote_chart_item = df_to_quote_chart_item(df_quotes, OHLC)
         quote_subplot = CandlestickSubplot(quote_chart_item)
+        indicator_subplots = create_indicator_subplots([_ for _ in transactions if _[TransactionKey.SYMBOL.value] == symbol],
+                                                       indicator_factory,
+                                                       indicator_runner_factory,
+                                                       start=start, end=end)
         oc_subplot = OpenCloseSubplot(quote_chart_item, oc_line_items)
         save_path = None if save_dir_path is None else save_dir_path / '{}.pdf'.format(symbol)
         print('Creating chart for', symbol)
-        create(quote_subplot, oc_subplot, title=symbol, save_path=save_path)
+        create(quote_subplot, *indicator_subplots, oc_subplot, title=symbol, save_path=save_path)
 
 
 if __name__ == '__main__':
     from poor_trader.charting.quotes.subplots import indicators as subplots_indicators
+
     INDICATORS_PATH = config.TEMP_PATH / 'indicators'
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
     TRANSACTIONS_DATA_PATH = ((config.RESOURCES_PATH / 'investa') / 'ColFinancialPortfolio') / 'transactions.csv'
