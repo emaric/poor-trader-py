@@ -374,6 +374,12 @@ class Volume(IndicatorRunner):
 
 
 class TrendStrength(IndicatorRunner):
+    class Columns(Enum):
+        SMA = 'SMA'
+        COUNT_SMA_BELOW_PRICE = 'CountSMABelowPrice'
+        COUNT_SMA_ABOVE_PRICE = 'CountSMAAbovePrice'
+        TREND_STRENGTH = 'TrendStrength'
+
     def __init__(self, start=40, end=150, step=5):
         super().__init__(self.__class__.__name__, locals())
         self.start = start
@@ -388,15 +394,15 @@ class TrendStrength(IndicatorRunner):
         columns = [x for x in range(self.start, self.end, self.step)]
         columns += [self.end]
         for col in columns:
-            df['SMA{}'.format(col)] = self.factory.create(SMA, period=col).run(symbol, df_quotes)['SMA']
+            df['{}{}'.format(self.Columns.SMA.value, col)] = self.factory.create(SMA, period=col).run(symbol, df_quotes)[self.Columns.SMA.value]
         col_size = len(columns)
         df_comparison = df.lt(df_quotes.Close, axis=0)
-        df_comparison['CountSMABelowPrice'] = round(100 * (df_comparison.filter(like='SMA') == True).astype(int).sum(axis=1) / col_size)
-        df_comparison['CountSMAAbovePrice'] = round(100 * -(df_comparison.filter(like='SMA') == False).astype(int).sum(axis=1) / col_size)
-        df['TrendStrength'] = df_comparison.CountSMABelowPrice + df_comparison.CountSMAAbovePrice
+        df_comparison[self.Columns.COUNT_SMA_BELOW_PRICE.value] = round(100 * (df_comparison.filter(like=self.Columns.SMA.value) == True).astype(int).sum(axis=1) / col_size)
+        df_comparison[self.Columns.COUNT_SMA_ABOVE_PRICE.value] = round(100 * -(df_comparison.filter(like=self.Columns.SMA.value) == False).astype(int).sum(axis=1) / col_size)
+        df[self.Columns.TREND_STRENGTH.value] = df_comparison[self.Columns.COUNT_SMA_BELOW_PRICE] + df_comparison[self.Columns.COUNT_SMA_ABOVE_PRICE]
 
-        self.add_direction(df, np.logical_and(df.TrendStrength >= 100, df.TrendStrength.shift(1) < 100),
-                           np.logical_and(df.TrendStrength <= -100, df_quotes.High < df.filter(like='SMA').min(axis=1)))
+        self.add_direction(df, np.logical_and(df[self.Columns.TREND_STRENGTH.value] >= 100, df[self.Columns.TREND_STRENGTH.value].shift(1) < 100),
+                           np.logical_and(df[self.Columns.TREND_STRENGTH.value] <= -100, df_quotes.High < df.filter(like=self.Columns.SMA.value).min(axis=1)))
         df = utils.round_df(df)
         return df
 
