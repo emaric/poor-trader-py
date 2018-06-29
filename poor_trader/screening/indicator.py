@@ -32,6 +32,9 @@ class IndicatorRunnerFactory(object):
 class IndicatorRunner(object):
     __metaclass__ = abc.ABCMeta
 
+    class Columns(Enum):
+        pass
+
     def __init__(self, name, param_values):
         self.name = name
         self.unique_name = self.__init_unique_name__(self.name,
@@ -453,6 +456,7 @@ class PickleIndicatorRunnerWrapper(object):
         self.runner = runner
         self.unique_name = runner.unique_name
         self.name = runner.name
+        self.Columns = runner.Columns
 
     def get_save_path(self, symbol, df_quotes):
         return self.dir_path / '{}.{}'.format(symbol, config.PICKLE_EXTENSION)
