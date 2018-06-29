@@ -18,7 +18,7 @@ class TestStrategy(unittest.TestCase):
             shutil.rmtree(config.TEST_TEMP_PATH)
 
     def test_atr_channel_breakout_strategy(self):
-        indicator_factory = indicator.PickleIndicatorFactory(test_indicator.TEMP_INDICATORS_PATH, self.market)
+        indicator_factory = indicator.DefaultIndicatorFactory(test_indicator.TEMP_INDICATORS_PATH, self.market)
         atr_channel_breakout = strategy.ATRChannelBreakout(indicator_factory, sma=5, fast=5, slow=10)
         self.assertTrue(len(atr_channel_breakout.indicators) > 0)
         for date in self.market.get_dates():

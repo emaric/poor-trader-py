@@ -5,7 +5,7 @@ import os
 from poor_trader.screening import indicator
 from poor_trader import market, config
 from poor_trader.screening.entity import Direction
-from poor_trader.screening.indicator import PickleIndicatorFactory, IndicatorRunnerFactory, PickleIndicatorRunnerFactory
+from poor_trader.screening.indicator import DefaultIndicatorFactory, IndicatorRunnerFactory, DefaultIndicatorRunnerFactory
 
 TEMP_INDICATORS_PATH = config.TEST_TEMP_PATH / 'indicators'
 
@@ -23,7 +23,7 @@ class TestIndicator(unittest.TestCase):
 
     def test_pickle_indicato_factory(self):
         runner = indicator.ATRChannel(top=2, bottom=1, sma=2)
-        factory = PickleIndicatorFactory(TEMP_INDICATORS_PATH, self.market)
+        factory = DefaultIndicatorFactory(TEMP_INDICATORS_PATH, self.market)
         atr_channel_indicator = factory.create(indicator.ATRChannel, top=runner.top, bottom=runner.bottom, sma=runner.sma)
         symbols = self.market.get_symbols()
         self.assertTrue(len(symbols) > 0)
@@ -44,7 +44,7 @@ class TestIndicator(unittest.TestCase):
         self.assertEqual(' '.join(['EMA', Direction.__name__]), ' '.join(df_ema.columns))
 
     def test_pickle_indicator_runner_factory(self):
-        factory = PickleIndicatorRunnerFactory(TEMP_INDICATORS_PATH)
+        factory = DefaultIndicatorRunnerFactory(TEMP_INDICATORS_PATH)
         ema = factory.create(indicator.EMA, period=2)
         self.assertTrue(len(self.market.get_symbols()) > 0)
         for symbol in self.market.get_symbols():
@@ -66,7 +66,7 @@ class TestIndicatorRunner(unittest.TestCase):
             shutil.rmtree(config.TEST_TEMP_PATH)
 
     def test_indicator_runners(self):
-        factory = PickleIndicatorFactory(TEMP_INDICATORS_PATH, self.market)
+        factory = DefaultIndicatorFactory(TEMP_INDICATORS_PATH, self.market)
         runner_classes = indicator.IndicatorRunner.__subclasses__()
         self.assertTrue(len(runner_classes) > 0)
         for runner_class in runner_classes:
@@ -82,7 +82,7 @@ class TestIndicatorRunner(unittest.TestCase):
                            'ATR_8': indicator.ATR(8),
                            'ATRChannel_8_4_150': indicator.ATRChannel(8, 4, 150)}
 
-        factory = PickleIndicatorRunnerFactory(TEMP_INDICATORS_PATH)
+        factory = DefaultIndicatorRunnerFactory(TEMP_INDICATORS_PATH)
         for unique_name in expected_values.keys():
             expected_runner = expected_values[unique_name]
             actual_runner = factory.create_by_unique_name(unique_name).runner

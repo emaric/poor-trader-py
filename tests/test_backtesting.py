@@ -12,7 +12,7 @@ from poor_trader.backtesting.equity_curve import DefaultEquityCurve
 from poor_trader.backtesting.portfolio import DefaultPortfolio
 from poor_trader.backtesting.position_sizing import EquityPercentage
 from poor_trader.market import csv_to_market
-from poor_trader.screening.indicator import PickleIndicatorFactory
+from poor_trader.screening.indicator import DefaultIndicatorFactory
 from poor_trader.screening.strategy import ATRChannelBreakout
 from tests import test_indicator
 
@@ -24,7 +24,7 @@ class TestBacktesting(unittest.TestCase):
         self.market = csv_to_market('TestMarket', test_indicator.INTRADAY_HISTORICAL_DATA_PATH)
         self.account = Account(100000)
 
-        indicator_factory = PickleIndicatorFactory(test_indicator.TEMP_INDICATORS_PATH, self.market)
+        indicator_factory = DefaultIndicatorFactory(test_indicator.TEMP_INDICATORS_PATH, self.market)
         atr_channel_breakout = ATRChannelBreakout(indicator_factory, sma=10, fast=5, slow=10)
 
         self.portfolio = DefaultPortfolio(account=self.account,

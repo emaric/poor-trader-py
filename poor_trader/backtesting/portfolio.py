@@ -112,7 +112,7 @@ if __name__ == '__main__':
     from poor_trader.backtesting.broker import COLFinancial
     from poor_trader.backtesting.equity_curve import DefaultEquityCurve
     from poor_trader.backtesting.position_sizing import EquityPercentage
-    from poor_trader.screening.indicator import PickleIndicatorFactory
+    from poor_trader.screening.indicator import DefaultIndicatorFactory
     from poor_trader.screening.strategy import DonchianChannel, ATRChannelBreakout
 
     investa_symbols = ['ALI', 'AC',    'MBT', 'SM',    'SMPH', 'JFC',   'URC',   'MPI', 'ICT',  'BLOOM',
@@ -127,8 +127,8 @@ if __name__ == '__main__':
     HISTORICAL_DATA_PATH = config.RESOURCES_PATH / 'historical_data.pkl'
 
     pse_market = pkl_to_market('PSE', HISTORICAL_DATA_PATH, symbols=investa_symbols)
-    strategies = [DonchianChannel(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market), fast=100, slow=120),
-                  ATRChannelBreakout(PickleIndicatorFactory(INDICATORS_PATH, market=pse_market), fast=100, slow=120)]
+    strategies = [DonchianChannel(DefaultIndicatorFactory(INDICATORS_PATH, market=pse_market), fast=100, slow=120),
+                  ATRChannelBreakout(DefaultIndicatorFactory(INDICATORS_PATH, market=pse_market), fast=100, slow=120)]
 
     colport = DefaultPortfolio(account=Account(1000000),
                                market=pse_market,

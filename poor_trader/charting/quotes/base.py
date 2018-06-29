@@ -8,7 +8,7 @@ from matplotlib.finance import candlestick_ohlc
 from poor_trader import config, utils
 from poor_trader.charting.entity import ChartItem, ChartObject, Subplot
 from poor_trader.market import pkl_to_market
-from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, PickleIndicatorFactory
+from poor_trader.screening.indicator import DefaultIndicatorRunnerFactory, DefaultIndicatorFactory
 from poor_trader.screening.indicator import DonchianChannel, MACross, TrailingStops, Volume, Indicator
 
 plt.style.use('ggplot')
@@ -230,8 +230,8 @@ if __name__ == '__main__':
     size = 300
     symbol = 'SM'
     market = pkl_to_market('PSE', HISTORICAL_DATA_PATH, symbols=[symbol])
-    runner_factory = PickleIndicatorRunnerFactory(INDICATORS_PATH)
-    factory = PickleIndicatorFactory(INDICATORS_PATH, market)
+    runner_factory = DefaultIndicatorRunnerFactory(INDICATORS_PATH)
+    factory = DefaultIndicatorFactory(INDICATORS_PATH, market)
 
     df_quotes = market.get_quotes(symbol=symbol)
     df_donchian = runner_factory.create(DonchianChannel).run(symbol=symbol, df_quotes=df_quotes)

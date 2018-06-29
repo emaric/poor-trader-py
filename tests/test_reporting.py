@@ -1,9 +1,12 @@
 import unittest
 
 
-class MyTestCase(unittest.TestCase):
-    def test_something(self):
-        self.assertEqual(True, False)
+class TestReporting(unittest.TestCase):
+    def test_create_trades_csv(self):
+        self.fail('TODO')
+
+    def test_create_performance_csv(self):
+        self.fail('TODO')
 
 
 if __name__ == '__main__':

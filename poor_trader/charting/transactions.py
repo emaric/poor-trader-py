@@ -9,7 +9,7 @@ from poor_trader.charting.entity import ChartObject, Subplot
 from poor_trader.charting.quotes.base import df_to_quote_chart_item, CandlestickSubplot, FilledSubplot, \
     indicator_to_quote_chart_item, LineSubplot, create, DefaultChartItem, OHLC
 from poor_trader.market import pkl_to_market
-from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, PickleIndicatorFactory, DonchianChannel, \
+from poor_trader.screening.indicator import DefaultIndicatorRunnerFactory, DefaultIndicatorFactory, DonchianChannel, \
     MACross, ATRChannel, IndicatorFactory, IndicatorRunnerFactory
 from poor_trader.charting.quotes.subplots import indicators as plot_i
 
@@ -184,8 +184,8 @@ if __name__ == '__main__':
     CHARTS_DIR_PATH = TRANSACTIONS_DATA_PATH.parent / 'charts'
 
     market = pkl_to_market('PSE', HISTORICAL_DATA_PATH)
-    runner_factory = PickleIndicatorRunnerFactory(INDICATORS_PATH)
-    factory = PickleIndicatorFactory(INDICATORS_PATH, market)
+    runner_factory = DefaultIndicatorRunnerFactory(INDICATORS_PATH)
+    factory = DefaultIndicatorFactory(INDICATORS_PATH, market)
 
     transactions = read_transactions_csv(TRANSACTIONS_DATA_PATH)
     symbol_oc_line_items = transactions_to_grouped_open_close_line_items(transactions)

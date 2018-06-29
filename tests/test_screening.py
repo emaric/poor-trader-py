@@ -6,7 +6,7 @@ import pandas as pd
 
 from poor_trader import config
 from poor_trader.market import csv_to_market
-from poor_trader.screening.indicator import PickleIndicatorRunnerFactory, IndicatorRunner, PickleIndicatorFactory
+from poor_trader.screening.indicator import DefaultIndicatorRunnerFactory, IndicatorRunner, DefaultIndicatorFactory
 from poor_trader.screening.screener import DataFrameScreener
 
 INDICATORS_PATH = config.TEST_TEMP_PATH / 'indicators'
@@ -23,7 +23,7 @@ class TestScreening(unittest.TestCase):
             shutil.rmtree(INDICATORS_PATH)
 
     def test_runner_factory(self):
-        indicator_runner_factory = PickleIndicatorRunnerFactory(INDICATORS_PATH)
+        indicator_runner_factory = DefaultIndicatorRunnerFactory(INDICATORS_PATH)
         indicator_classes = IndicatorRunner.__subclasses__()
         for indicator_class in indicator_classes:
             indicator_instance = indicator_runner_factory.create(indicator_class)
@@ -34,7 +34,7 @@ class TestScreening(unittest.TestCase):
                                 msg=symbol)
 
     def test_factory(self):
-        indicator_factory = PickleIndicatorFactory(INDICATORS_PATH, market=self.market)
+        indicator_factory = DefaultIndicatorFactory(INDICATORS_PATH, market=self.market)
         indicator_classes = IndicatorRunner.__subclasses__()
         for indicator_class in indicator_classes:
             indicator_instance = indicator_factory.create(indicator_class)

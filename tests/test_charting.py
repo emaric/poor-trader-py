@@ -5,7 +5,7 @@ import unittest
 from poor_trader import config
 from poor_trader.charting import equity_curve, transactions
 from poor_trader.market import csv_to_market
-from poor_trader.screening.indicator import PickleIndicatorFactory
+from poor_trader.screening.indicator import DefaultIndicatorFactory
 from tests import test_indicator
 
 BACKTEST_RESULT_PATH = config.TEST_RESOURCES_PATH / 'backtest_result'
@@ -30,7 +30,7 @@ class TestCharting(unittest.TestCase):
         equity_curve.csv_to_chart(EQUITY_CURVE_PATH)
 
     def test_transactions(self):
-        factory = PickleIndicatorFactory(TEMP_INDICATORS_PATH, self.market)
+        factory = DefaultIndicatorFactory(TEMP_INDICATORS_PATH, self.market)
         transactions.csv_to_chart(self.market, TRANSACTIONS_PATH,
                                   indicator_factory=factory,
                                   indicator_runner_factory=factory.runner_factory)

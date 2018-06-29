@@ -479,13 +479,13 @@ class PickleIndicatorRunnerWrapper(object):
             return self.update(symbol, df_quotes, df_indicator)
 
 
-class PickleIndicatorRunnerFactory(IndicatorRunnerFactory):
+class DefaultIndicatorRunnerFactory(IndicatorRunnerFactory):
     def __init__(self, dir_path: Path):
         self.dir_path = dir_path
 
     def create(self, cls, *args, **kwargs):
         runner = cls(*args, **kwargs)
-        runner.factory = PickleIndicatorRunnerFactory(self.dir_path)
+        runner.factory = DefaultIndicatorRunnerFactory(self.dir_path)
         save_path = self.dir_path / runner.unique_name
         return PickleIndicatorRunnerWrapper(save_path, runner)
 
@@ -554,11 +554,11 @@ class IndicatorFactory(object):
         raise NotImplementedError
 
 
-class PickleIndicatorFactory(IndicatorFactory):
+class DefaultIndicatorFactory(IndicatorFactory):
     def __init__(self, dir_path: Path, market: Market):
         self.dir_path = dir_path
         self.market = market
-        self.runner_factory = PickleIndicatorRunnerFactory(dir_path)
+        self.runner_factory = DefaultIndicatorRunnerFactory(dir_path)
 
     def create_by_runner_instance(self, runner):
         indicator = Indicator(runner.unique_name, dict())
@@ -595,7 +595,7 @@ if __name__ == '__main__':
 
     symbol = 'SM'
     market = pkl_to_market('pse', HISTORICAL_DATA_PATH)
-    factory = PickleIndicatorFactory(INDICATORS_PATH, market)
+    factory = DefaultIndicatorFactory(INDICATORS_PATH, market)
     macross = factory.create(MACross)
     fast = macross.get_attribute('FastSMA').get_value(symbol=symbol)
     print(fast)

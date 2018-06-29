@@ -30,7 +30,7 @@ class DataFrameScreener(Screener):
 
     def create_indicators(self, start=None, end=None):
         indicators = []
-        factory = indicator.PickleIndicatorFactory(self.indicators_path, self.trim_market(start, end))
+        factory = indicator.DefaultIndicatorFactory(self.indicators_path, self.trim_market(start, end))
         runner_classes = indicator.IndicatorRunner.__subclasses__()
         for runner_class in runner_classes:
             indicators.append(factory.create(runner_class))
