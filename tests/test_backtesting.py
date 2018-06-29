@@ -5,7 +5,7 @@ import unittest
 import pandas as pd
 
 from poor_trader import config
-from poor_trader.backtesting.backtester import DataFrameBacktester
+from poor_trader.backtesting.backtester import DefaultBacktester
 from poor_trader.backtesting.broker import COLFinancial
 from poor_trader.backtesting.entity import Account
 from poor_trader.backtesting.equity_curve import DefaultEquityCurve
@@ -42,7 +42,7 @@ class TestBacktesting(unittest.TestCase):
             shutil.rmtree(self.portfolio.save_dir_path)
 
     def test_backtester(self):
-        backtester = DataFrameBacktester(self.portfolio)
+        backtester = DefaultBacktester(self.portfolio)
         equity_curve = backtester.run(self.market)
         print(equity_curve.get_equity())
         self.assertTrue(pd.Index.equals(equity_curve.get_equity()[1:].index, self.market.__df_historical_data__.index))

@@ -120,7 +120,7 @@ class TransactionService(object):
         self.df.to_csv(dir_path / 'transactions.csv')
 
 
-class DataFrameBacktester(Backtester):
+class DefaultBacktester(Backtester):
     def __init__(self, portfolio: Portfolio):
         self.portfolio = portfolio
 

@@ -108,7 +108,7 @@ class DefaultPortfolio(Portfolio):
 
 if __name__ == '__main__':
     from poor_trader.market import pkl_to_market
-    from poor_trader.backtesting.backtester import DataFrameBacktester
+    from poor_trader.backtesting.backtester import DefaultBacktester
     from poor_trader.backtesting.broker import COLFinancial
     from poor_trader.backtesting.equity_curve import DefaultEquityCurve
     from poor_trader.backtesting.position_sizing import EquityPercentage
@@ -137,5 +137,5 @@ if __name__ == '__main__':
                                equity_curve=DefaultEquityCurve(),
                                strategies=strategies,
                                name='test3')
-    default = DataFrameBacktester(colport)
+    default = DefaultBacktester(colport)
     ec = default.run(pse_market, start=pd.to_datetime('2017-08-20'), end=pd.to_datetime('2017-11-23'))
