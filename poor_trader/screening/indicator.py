@@ -1,6 +1,5 @@
 import abc
 import os
-import re
 import inspect
 from enum import Enum
 
@@ -21,6 +20,13 @@ class IndicatorRunnerFactory(object):
         runner = cls(*args, **kwargs)
         runner.factory = self
         return runner
+
+    def create_by_unique_name(self, unique_name):
+        indicator_runner_classes = IndicatorRunner.__subclasses__()
+        for indicator_runner_class in indicator_runner_classes:
+            if indicator_runner_class.is_unique_name_a_match(unique_name):
+                return self.create(indicator_runner_class,
+                                   **indicator_runner_class.get_init_param_values(unique_name))
 
 
 class IndicatorRunner(object):
@@ -57,6 +63,17 @@ class IndicatorRunner(object):
         parameters = [_ for _ in inspect.signature(cls.__init__).parameters if _ != 'self']
         sub_strs = unique_name.split('_')
         return sub_strs[0] == cls.__name__ and len(parameters) == len(sub_strs) - 1
+
+    @classmethod
+    def get_init_param_values(cls, unique_name):
+        return_values = {}
+        values = unique_name.split('_')
+        parameters = inspect.signature(cls.__init__).parameters
+        for i, (name, param) in enumerate(parameters.items()):
+            if i == 0: continue
+            param_type = type(param.default)
+            return_values[name] = param_type(values[i])
+        return return_values
 
 
 class STDEV(IndicatorRunner):
@@ -528,6 +545,10 @@ class IndicatorFactory(object):
     def create(self, runner_class, *args, **kwargs):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def create_by_unique_name(self, unique_name):
+        raise NotImplementedError
+
 
 class PickleIndicatorFactory(IndicatorFactory):
     def __init__(self, dir_path: Path, market: Market):
@@ -535,8 +556,7 @@ class PickleIndicatorFactory(IndicatorFactory):
         self.market = market
         self.runner_factory = PickleIndicatorRunnerFactory(dir_path)
 
-    def create(self, runner_class, *args, **kwargs):
-        runner = self.runner_factory.create(runner_class, *args, **kwargs)
+    def create_by_runner_instance(self, runner):
         indicator = Indicator(runner.unique_name, dict())
         print('Running {} for all symbols in the market...'.format(runner.unique_name))
         for symbol in self.market.get_symbols():
@@ -555,6 +575,14 @@ class PickleIndicatorFactory(IndicatorFactory):
 
         print('Finished running {} for all symbols in the market.'.format(runner.unique_name))
         return indicator
+
+    def create_by_unique_name(self, unique_name):
+        runner = self.runner_factory.create_by_unique_name(unique_name)
+        return self.create_by_runner_instance(runner)
+
+    def create(self, runner_class, *args, **kwargs):
+        runner = self.runner_factory.create(runner_class, *args, **kwargs)
+        return self.create_by_runner_instance(runner)
 
 
 if __name__ == '__main__':
