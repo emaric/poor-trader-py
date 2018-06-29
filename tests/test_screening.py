@@ -40,8 +40,6 @@ class TestScreening(unittest.TestCase):
             indicator_instance = indicator_factory.create(indicator_class)
             for symbol in self.market.get_symbols():
                 print('test_factory:', symbol, 'indicator_instance:', indicator_instance.name)
-                if symbol == '2GO' and indicator_instance.name == 'ema_Close_10':
-                    print('test')
                 df_quotes = self.market.get_quotes(symbol=symbol)
                 indices = indicator_instance.get_indices(symbol=symbol)
                 self.assertSetEqual(set(df_quotes.index.values), set(indices), symbol)
