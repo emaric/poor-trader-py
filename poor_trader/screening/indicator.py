@@ -360,13 +360,15 @@ class Volume(IndicatorRunner):
 
         df = pd.DataFrame(index=df_quotes.index)
         ema = self.factory.create(EMA, period=self.period, field='Volume').run(symbol, df_quotes)
-        df['Volume'] = df_quotes.Volume
-        df['EMA'] = ema.EMA
+        df[self.Columns.VOLUME.value] = df_quotes.Volume
+        df[self.Columns.EMA.value] = ema.EMA
         df[self.Columns.UP.value] = np.where(df_quotes.Open < df_quotes.Close, df_quotes.Volume, 0)
         df[self.Columns.DOWN.value] = np.where(df_quotes.Open >= df_quotes.Close, df_quotes.Volume, 0)
 
-        self.add_direction(df, np.logical_and(df['Volume'] > df['EMA'], df['Volume'].shift(1) < df['EMA'].shift(1)),
-                           np.logical_and(df['Volume'] < df['EMA'], df['Volume'].shift(1) > df['EMA'].shift(1)))
+        self.add_direction(df, np.logical_and(df[self.Columns.VOLUME.value] > df[self.Columns.EMA.value],
+                                              df[self.Columns.VOLUME.value].shift(1) < df[self.Columns.EMA.value].shift(1)),
+                           np.logical_and(df[self.Columns.VOLUME.value] < df[self.Columns.EMA.value],
+                                          df[self.Columns.VOLUME.value].shift(1) > df[self.Columns.EMA.value].shift(1)))
         df = utils.round_df(df)
         return df
 
