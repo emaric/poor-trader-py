@@ -86,13 +86,13 @@ def create(data: EquityCurveChart,
     if fpath:
         try:
             plt.savefig(fpath)
+            plt.clf()
+            plt.close(fig)
         except RuntimeError:
             print('Error charting {}'.format(title))
             print(traceback.print_exc())
     else:
         plt.show()
-    plt.clf()
-    plt.close(fig)
 
 
 def read_equity_curve_csv(path):

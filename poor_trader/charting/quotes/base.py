@@ -68,8 +68,8 @@ class DefaultChartItem(ChartItem):
 
 
 class CandlestickSubplot(Subplot):
-    def __init__(self, chart_item: DefaultChartItem, width=0.5, colorup='g', colordown='r', edgecolor='b', alpha=0.75, location=0):
-        super().__init__(chart_item, location)
+    def __init__(self, chart_item: DefaultChartItem, width=0.5, colorup='g', colordown='r', edgecolor='b', alpha=0.75, location=0, ylabel=''):
+        super().__init__(chart_item, location, ylabel)
         self.width = width
         self.colorup = colorup
         self.colordown = colordown
@@ -83,8 +83,8 @@ class CandlestickSubplot(Subplot):
 
 
 class BarSubplot(Subplot):
-    def __init__(self, chart_item: DefaultChartItem, key, color='green', alpha=0.75, location=1):
-        super().__init__(chart_item, location)
+    def __init__(self, chart_item: DefaultChartItem, key, color='green', alpha=0.75, location=1, ylabel=''):
+        super().__init__(chart_item, location, ylabel)
         self.key = key
         self.color = color
         self.alpha = alpha
@@ -96,8 +96,8 @@ class BarSubplot(Subplot):
 
 
 class AreaSubplot(Subplot):
-    def __init__(self, chart_item: DefaultChartItem, key, color='#469df4', alpha=0.8, location=1):
-        super().__init__(chart_item, location)
+    def __init__(self, chart_item: DefaultChartItem, key, color='#469df4', alpha=0.8, location=1, ylabel=''):
+        super().__init__(chart_item, location, ylabel)
         self.key = key
         self.color = color
         self.alpha = alpha
@@ -111,8 +111,8 @@ class AreaSubplot(Subplot):
 class FilledSubplot(Subplot):
     def __init__(self, chart_item: DefaultChartItem,
                  top_key, mid_key, bottom_key,
-                 top_color, mid_color, bottom_color, location=0):
-        super().__init__(chart_item, location)
+                 top_color, mid_color, bottom_color, location=0, ylabel=''):
+        super().__init__(chart_item, location, ylabel)
         self.top_key = top_key
         self.mid_key = mid_key
         self.bottom_key = bottom_key
@@ -137,8 +137,8 @@ class LineSubplot(Subplot):
             self.color = color
             self.linewidth = linewidth
 
-    def __init__(self, chart_item: DefaultChartItem, *configs: Config, location=0):
-        super().__init__(chart_item, location)
+    def __init__(self, chart_item: DefaultChartItem, *configs: Config, location=0, ylabel=''):
+        super().__init__(chart_item, location, ylabel)
         self.configs = configs
 
     def plot(self, subplot):
@@ -148,8 +148,8 @@ class LineSubplot(Subplot):
 
 
 class AXHLineSubplot(Subplot):
-    def __init__(self, start_position=0, linewidth=0.5, color='black', location=1):
-        super().__init__(None, location)
+    def __init__(self, start_position=0, linewidth=0.5, color='black', location=1, ylabel=''):
+        super().__init__(None, location, ylabel)
         self.start_position = start_position
         self.linewidth = linewidth
         self.color = color
@@ -159,8 +159,8 @@ class AXHLineSubplot(Subplot):
 
 
 class MarkerSubplot(Subplot):
-    def __init__(self, chart_item: DefaultChartItem, key, color='r', shape='v', marker_size=3, location=0):
-        super().__init__(chart_item, location)
+    def __init__(self, chart_item: DefaultChartItem, key, color='r', shape='v', marker_size=3, location=0, ylabel=''):
+        super().__init__(chart_item, location, ylabel)
         self.key = key
         self.color = color
         self.shape = shape
@@ -185,7 +185,7 @@ def create(quotes: CandlestickSubplot, *subplots: Subplot, title='', save_path=N
         ax = plt.subplot(ncharts, 1, location + 1, sharex=ax1)
         if ax1 is None:
             ax1 = ax
-        [p.plot(ax) for p in plotters if p.location == location]
+        [(p.plot(ax), ax.set_ylabel(p.ylabel)) for p in plotters if p.location == location]
         xaxis = quotes.chart_item.positions
         space = 150
         xsize = len(xaxis)
@@ -203,11 +203,10 @@ def create(quotes: CandlestickSubplot, *subplots: Subplot, title='', save_path=N
         utils.makedirs(save_path.parent)
         print('Saving chart', save_path)
         plt.savefig(save_path)
+        plt.clf()
+        plt.close(fig)
     else:
         plt.show()
-
-    plt.clf()
-    plt.close(fig)
 
 
 def df_to_quote_chart_item(df: pd.DataFrame, keys_enum_class):

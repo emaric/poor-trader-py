@@ -40,9 +40,10 @@ class ChartItem(object):
 class Subplot(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, chart_item: ChartItem, location):
+    def __init__(self, chart_item: ChartItem, location, ylabel=''):
         self.chart_item = chart_item
         self.location = location
+        self.ylabel = ylabel
 
     @abc.abstractmethod
     def plot(self, subplot):

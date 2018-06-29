@@ -1,4 +1,5 @@
 import abc
+import collections
 import os
 import inspect
 from enum import Enum
@@ -374,8 +375,9 @@ class Volume(IndicatorRunner):
 
 
 class TrendStrength(IndicatorRunner):
+    SMA_COLUMN = 'SMA'
+
     class Columns(Enum):
-        SMA = 'SMA'
         TREND_STRENGTH = 'TrendStrength'
 
     def __init__(self, start=40, end=150, step=5):
@@ -385,6 +387,13 @@ class TrendStrength(IndicatorRunner):
         self.step = step
         self.columns = [x for x in range(self.start, self.end, self.step)]
         self.columns += [self.end]
+        columns_dict = collections.OrderedDict()
+        for col in self.Columns:
+            columns_dict[col.name] = col.value
+        for col in self.columns:
+            name = '{}{}'.format(self.SMA_COLUMN, col)
+            columns_dict[name] = name
+        self.Columns = Enum('Columns', columns_dict)
 
     def run(self, symbol, df_quotes, df_indicator=None):
         if self.is_updated(df_quotes, df_indicator):
@@ -392,15 +401,15 @@ class TrendStrength(IndicatorRunner):
 
         df = pd.DataFrame(index=df_quotes.index)
         for col in self.columns:
-            df['{}{}'.format(self.Columns.SMA.value, col)] = self.factory.create(SMA, period=col).run(symbol, df_quotes)[self.Columns.SMA.value]
+            df['{}{}'.format(self.SMA_COLUMN, col)] = self.factory.create(SMA, period=col).run(symbol, df_quotes)[self.SMA_COLUMN]
         col_size = len(self.columns)
         df_comparison = df.lt(df_quotes.Close, axis=0)
-        df_comparison['CountSMABelowPrice'] = round(100 * (df_comparison.filter(like=self.Columns.SMA.value) == True).astype(int).sum(axis=1) / col_size)
-        df_comparison['CountSMAAbovePrice'] = round(100 * -(df_comparison.filter(like=self.Columns.SMA.value) == False).astype(int).sum(axis=1) / col_size)
+        df_comparison['CountSMABelowPrice'] = round(100 * (df_comparison.filter(like=self.SMA_COLUMN) == True).astype(int).sum(axis=1) / col_size)
+        df_comparison['CountSMAAbovePrice'] = round(100 * -(df_comparison.filter(like=self.SMA_COLUMN) == False).astype(int).sum(axis=1) / col_size)
         df[self.Columns.TREND_STRENGTH.value] = df_comparison.CountSMABelowPrice + df_comparison.CountSMAAbovePrice
 
         self.add_direction(df, np.logical_and(df[self.Columns.TREND_STRENGTH.value] >= 100, df[self.Columns.TREND_STRENGTH.value].shift(1) < 100),
-                           np.logical_and(df[self.Columns.TREND_STRENGTH.value] <= -100, df_quotes.High < df.filter(like=self.Columns.SMA.value).min(axis=1)))
+                           np.logical_and(df[self.Columns.TREND_STRENGTH.value] <= -100, df_quotes.High < df.filter(like=self.SMA_COLUMN).min(axis=1)))
         df = utils.round_df(df)
         return df
 

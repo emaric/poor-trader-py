@@ -87,6 +87,7 @@ class TestIndicatorRunner(unittest.TestCase):
         for unique_name in expected_values.keys():
             expected_runner = expected_values[unique_name]
             actual_runner = factory.create_by_unique_name(unique_name).runner
+            self.assertTrue(expected_runner.is_unique_name_a_match(unique_name))
             self.assertEqual(expected_runner.__class__, actual_runner.__class__, msg=unique_name)
             self.assertEqual(expected_runner.name, actual_runner.name, msg=unique_name)
             self.assertEqual(expected_runner.unique_name, actual_runner.unique_name, msg=unique_name)

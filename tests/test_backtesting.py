@@ -13,7 +13,7 @@ from poor_trader.backtesting.portfolio import DefaultPortfolio
 from poor_trader.backtesting.position_sizing import EquityPercentage
 from poor_trader.market import csv_to_market
 from poor_trader.screening.indicator import DefaultIndicatorFactory
-from poor_trader.screening.strategy import ATRChannelBreakout
+from poor_trader.screening.strategy import ATRChannelBreakout, TrendStrength
 from tests import test_indicator
 
 
@@ -26,13 +26,14 @@ class TestBacktesting(unittest.TestCase):
 
         indicator_factory = DefaultIndicatorFactory(test_indicator.TEMP_INDICATORS_PATH, self.market)
         atr_channel_breakout = ATRChannelBreakout(indicator_factory, sma=10, fast=5, slow=10)
+        trend_strength = TrendStrength(indicator_factory, start=5, end=10, step=1, fast=5, slow=10)
 
         self.portfolio = DefaultPortfolio(account=self.account,
                                           market=self.market,
                                           position_sizing=EquityPercentage(market=self.market),
                                           broker=COLFinancial(),
                                           equity_curve=DefaultEquityCurve(),
-                                          strategies=[atr_channel_breakout])
+                                          strategies=[atr_channel_breakout, trend_strength])
 
     def tearDown(self):
         if os.path.exists(config.TEST_TEMP_PATH):

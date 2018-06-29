@@ -143,8 +143,8 @@ def create_indicator_subplots(transactions, indicator_factory: IndicatorFactory,
             indicators_unique_names.add(indicator_name)
     for unique_name in indicators_unique_names:
         indicator = indicator_factory.create_by_unique_name(unique_name)
-        indicator_runner_class = indicator_runner_factory.create_by_unique_name(unique_name)
-        _subplots = plot_i.create(indicator, indicator_runner_class.Columns, symbol, start=start, end=end)
+        indicator_runner = indicator_runner_factory.create_by_unique_name(unique_name)
+        _subplots = plot_i.create(indicator, indicator_runner.Columns, symbol, start=start, end=end)
         subplots = subplots + _subplots
     return subplots
 
