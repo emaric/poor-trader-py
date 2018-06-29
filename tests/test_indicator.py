@@ -76,7 +76,19 @@ class TestIndicatorRunner(unittest.TestCase):
             self.assertIsNotNone(_indicator.get_attribute(Direction.__name__), msg=runner_class.__name__)
 
     def test_is_unique_name_a_match(self):
-        self.fail('TODO')
+        expected_values = {'DonchianChannel_100_50': indicator.DonchianChannel(100, 50),
+                           'SMA_100_High': indicator.SMA(100, 'High'),
+                           'MACross_100_150': indicator.MACross(100, 150),
+                           'ATR_8': indicator.ATR(8),
+                           'ATRChannel_8_4_150': indicator.ATRChannel(8, 4, 150)}
+
+        factory = PickleIndicatorRunnerFactory(TEMP_INDICATORS_PATH)
+        for unique_name in expected_values.keys():
+            expected_runner = expected_values[unique_name]
+            actual_runner = factory.create_by_unique_name(unique_name).runner
+            self.assertEqual(expected_runner.__class__, actual_runner.__class__, msg=unique_name)
+            self.assertEqual(expected_runner.name, actual_runner.name, msg=unique_name)
+            self.assertEqual(expected_runner.unique_name, actual_runner.unique_name, msg=unique_name)
 
 
 if __name__ == '__main__':
