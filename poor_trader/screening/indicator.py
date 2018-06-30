@@ -150,7 +150,7 @@ class ATR(IndicatorRunner):
         df['H_minus_PrevC'] = abs(df_quotes.High - df_quotes.shift(1).Close)
         df['L_minus_PrevC'] = abs(df_quotes.Low - df_quotes.shift(1).Close)
         df = utils.round_df(df, 4)
-        df['true_range'] = df.apply(lambda x: max(x), axis=1)
+        df['true_range'] = df.max(axis=1)
         return df.filter(like='true_range')
 
     def run(self, symbol, df_quotes, df_indicator=None):
@@ -159,8 +159,11 @@ class ATR(IndicatorRunner):
 
         df = pd.DataFrame(columns=['ATR'], index=df_quotes.index)
         df_true_range = self.true_range(df_quotes)
-        df['ATR'] = df_true_range.rolling(self.period).mean()
-        df['ATR'] = (df.shift(1).ATR * (self.period-1) + df.ATR) / self.period
+        df['ATR'] = df_true_range.true_range.rolling(self.period).mean()
+        for i in df.index.values:
+            if pd.isnull(df['ATR'].shift(1).loc[i]): continue
+            df.loc[i, 'ATR'] = (df['ATR'].shift(1).loc[i] * (self.period-1) + df_true_range.loc[i].true_range) / self.period
+
         self.add_direction(df, False, False)
         return utils.round_df(df)
 
