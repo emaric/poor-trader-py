@@ -146,14 +146,11 @@ class ATR(IndicatorRunner):
 
     def true_range(self, df_quotes):
         df = pd.DataFrame(index=df_quotes.index)
-        df['n_index'] = range(len(df_quotes))
-        def _true_range(indices):
-            _df_quotes = df_quotes.iloc[indices]
-            a = utils.roundn(np.abs(_df_quotes.High - _df_quotes.Low)[-1], 4)
-            b = utils.roundn(np.abs(_df_quotes.High - _df_quotes.shift(1).Close)[-1], 4)
-            c = utils.roundn(np.abs(_df_quotes.Low - _df_quotes.shift(1).Close)[-1], 4)
-            return max(a, b, c)
-        df['true_range'] = df.n_index.rolling(2).apply(_true_range)
+        df['H_minus_L'] = df_quotes.High - df_quotes.Low
+        df['H_minus_PrevC'] = abs(df_quotes.High - df_quotes.shift(1).Close)
+        df['L_minus_PrevC'] = abs(df_quotes.Low - df_quotes.shift(1).Close)
+        df = utils.round_df(df, 4)
+        df['true_range'] = df.apply(lambda x: max(x), axis=1)
         return df.filter(like='true_range')
 
     def run(self, symbol, df_quotes, df_indicator=None):
@@ -162,18 +159,8 @@ class ATR(IndicatorRunner):
 
         df = pd.DataFrame(columns=['ATR'], index=df_quotes.index)
         df_true_range = self.true_range(df_quotes)
-        for i in range(1+len(df_quotes)-self.period):
-            if pd.isnull(df_true_range.iloc[i].true_range): continue
-            start = i
-            end = i + self.period
-            last_index = end - 1
-            trs = df_true_range[start:end]
-            prev_atr = df.iloc[last_index-1].ATR
-            if pd.isnull(prev_atr):
-                atr = np.mean([tr for tr in trs.true_range.values])
-            else:
-                atr = (prev_atr * (self.period-1) + df_true_range.iloc[last_index].true_range) / self.period
-            df.loc[df_quotes.index.values[last_index], 'ATR'] = atr
+        df['ATR'] = df_true_range.rolling(self.period).mean()
+        df['ATR'] = (df.shift(1).ATR * (self.period-1) + df.ATR) / self.period
         self.add_direction(df, False, False)
         return utils.round_df(df)
 
