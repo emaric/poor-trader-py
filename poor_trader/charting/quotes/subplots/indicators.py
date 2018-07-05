@@ -1,6 +1,8 @@
-from poor_trader.charting.quotes.base import DefaultChartItem, LineSubplot, FilledSubplot, AXHLineSubplot
+from poor_trader.charting.quotes.base import DefaultChartItem, LineSubplot, FilledSubplot, AXHLineSubplot, BarSubplot, \
+    AreaSubplot
 from poor_trader.screening.entity import Indicator
-from poor_trader.screening.indicator import MACross, DonchianChannel, ATRChannel, TrendStrength
+from poor_trader.screening.indicator import MACross, DonchianChannel, ATRChannel, TrendStrength, Volume, \
+    PriceVolumeTrend
 
 
 def create(indicator: Indicator, keys_enum_class, symbol, start=None, end=None, bottom_plot_location=1) -> list:
@@ -31,6 +33,19 @@ def create(indicator: Indicator, keys_enum_class, symbol, start=None, end=None, 
                             ylabel=ylabel),
                 AXHLineSubplot(location=bottom_plot_location,
                                ylabel=ylabel)]
+    elif Volume.is_unique_name_a_match(indicator.name):
+        ylabel = 'Volume {}'.format(*Volume.get_init_param_values(indicator.name).values())
+        return [BarSubplot(chart_item, key=Volume.Columns.UP, color='g', alpha=0.75, location=bottom_plot_location, ylabel=ylabel),
+                BarSubplot(chart_item, key=Volume.Columns.DOWN, color='r', alpha=0.75, location=bottom_plot_location, ylabel=ylabel),
+                AreaSubplot(chart_item, key=Volume.Columns.EMA, location=bottom_plot_location, ylabel=ylabel)]
+    elif PriceVolumeTrend.is_unique_name_a_match(indicator.name):
+        ylabel = 'PVT'
+        return [LineSubplot(chart_item,
+                            LineSubplot.Config(PriceVolumeTrend.Columns.PVT, 'black', 1),
+                            LineSubplot.Config(PriceVolumeTrend.Columns.FAST_MA, 'blue', 0.5),
+                            LineSubplot.Config(PriceVolumeTrend.Columns.SLOW_MA, 'red', 0.5),
+                            location=bottom_plot_location,
+                            ylabel=ylabel)]
     else:
         raise NotImplementedError
 
