@@ -68,7 +68,7 @@ class DefaultChartItem(ChartItem):
 
 
 class CandlestickSubplot(Subplot):
-    def __init__(self, chart_item: DefaultChartItem, width=0.5, colorup='g', colordown='r', edgecolor='b', alpha=0.75, location=0, ylabel=''):
+    def __init__(self, chart_item: DefaultChartItem, width=0.5, colorup='g', colordown='r', edgecolor='black', alpha=0.75, location=0, ylabel=''):
         super().__init__(chart_item, location, ylabel)
         self.width = width
         self.colorup = colorup
@@ -259,9 +259,9 @@ if __name__ == '__main__':
                               MarkerSubplot(trailing_stops_chart_item, key=TrailingStops.Columns.SHORT, color='g', shape='^')]
 
     volume_chart_item = indicator_to_quote_chart_item(volume, Volume.Columns, symbol, -size, -1)
-    volume_subplots = [BarSubplot(volume_chart_item, key=Volume.Columns.UP, color='g', alpha=0.75, location=1),
-                       BarSubplot(volume_chart_item, key=Volume.Columns.DOWN, color='r', alpha=0.75, location=1),
-                       AreaSubplot(volume_chart_item, key=Volume.Columns.EMA, location=1)]
+    volume_subplots = [BarSubplot(volume_chart_item, key=Volume.Columns.UP, color='g', alpha=0.75, location=1, ylabel='Volume'),
+                       BarSubplot(volume_chart_item, key=Volume.Columns.DOWN, color='r', alpha=0.75, location=1, ylabel='Volume'),
+                       AreaSubplot(volume_chart_item, key=Volume.Columns.EMA, location=1, ylabel='Volume')]
 
     create(quote_subplot, donchian_subplot, macross_subplot,
            *trailing_stop_subplots, *volume_subplots, title=symbol)
