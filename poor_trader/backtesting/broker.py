@@ -1,7 +1,7 @@
 from poor_trader.backtesting.entity import Broker
 
 
-class COLFinancial(Broker):
+class PSEDefaultBroker(Broker):
     def __init__(self, name=None):
         super().__init__(name or self.__class__.__name__)
 

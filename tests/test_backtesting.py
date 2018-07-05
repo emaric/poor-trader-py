@@ -6,7 +6,7 @@ import pandas as pd
 
 from poor_trader import config
 from poor_trader.backtesting.backtester import DefaultBacktester
-from poor_trader.backtesting.broker import COLFinancial
+from poor_trader.backtesting.broker import PSEDefaultBroker
 from poor_trader.backtesting.entity import Account
 from poor_trader.backtesting.equity_curve import DefaultEquityCurve
 from poor_trader.backtesting.portfolio import DefaultPortfolio
@@ -31,7 +31,7 @@ class TestBacktesting(unittest.TestCase):
         self.portfolio = DefaultPortfolio(account=self.account,
                                           market=self.market,
                                           position_sizing=EquityPercentage(market=self.market),
-                                          broker=COLFinancial(),
+                                          broker=PSEDefaultBroker(),
                                           equity_curve=DefaultEquityCurve(),
                                           strategies=[atr_channel_breakout, trend_strength])
 

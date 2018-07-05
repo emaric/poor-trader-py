@@ -1,5 +1,3 @@
-import os
-
 import pandas as pd
 
 from poor_trader import config
@@ -24,7 +22,7 @@ class DefaultPortfolio(Portfolio):
 
     def update_account_on_close(self, exit_value):
         self.account.cash = self.account.cash + exit_value
-        self.account.buying_power = self.account.cash
+        self.account.buying_power = self.account.cash - (self.account.equity * 0.05)
 
     def close(self, position: Position, tags: str):
         self.update_account_on_close(position.value)
@@ -43,8 +41,8 @@ class DefaultPortfolio(Portfolio):
 
     def update_account_on_open(self, entry_value=0.0, exit_value=0.0):
         self.account.cash = self.account.cash - entry_value
-        self.account.buying_power = self.account.cash
         self.account.equity = self.account.cash + exit_value
+        self.account.buying_power = self.account.cash - (self.account.equity * 0.05)
 
     def open(self, date, symbol, tags):
         price = self.market.get_close(date, symbol)
@@ -82,6 +80,7 @@ class DefaultPortfolio(Portfolio):
                 pass
 
     def update(self, date, symbols):
+        self.update_open_positions_values(date)
         self.close_positions(date=date, symbols=symbols)
         self.open_positions(date=date, symbols=symbols)
         self.update_open_positions_values(date)
@@ -109,7 +108,7 @@ class DefaultPortfolio(Portfolio):
 if __name__ == '__main__':
     from poor_trader.market import pkl_to_market
     from poor_trader.backtesting.backtester import DefaultBacktester
-    from poor_trader.backtesting.broker import COLFinancial
+    from poor_trader.backtesting.broker import PSEDefaultBroker
     from poor_trader.backtesting.equity_curve import DefaultEquityCurve
     from poor_trader.backtesting.position_sizing import EquityPercentage
     from poor_trader.screening.indicator import DefaultIndicatorFactory
@@ -132,7 +131,7 @@ if __name__ == '__main__':
 
     colport = DefaultPortfolio(account=Account(1000000),
                                market=pse_market,
-                               broker=COLFinancial(),
+                               broker=PSEDefaultBroker(),
                                position_sizing=EquityPercentage(pse_market),
                                equity_curve=DefaultEquityCurve(),
                                strategies=strategies,
