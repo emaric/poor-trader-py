@@ -123,6 +123,9 @@ class EMA(IndicatorRunner):
 
 
 class SMA(IndicatorRunner):
+    class Columns(Enum):
+        SMA = 'SMA'
+
     def __init__(self, period=10, field='Close'):
         super().__init__(self.__class__.__name__, locals())
         self.period = period
@@ -133,8 +136,8 @@ class SMA(IndicatorRunner):
             return df_indicator
         else:
             df = pd.DataFrame(index=df_quotes.index)
-            df['SMA'] = df_quotes[self.field].rolling(self.period).mean()
-            self.add_direction(df, df_quotes[self.field] > df['SMA'], df_quotes[self.field] < df['SMA'])
+            df[self.Columns.SMA.value] = df_quotes[self.field].rolling(self.period).mean()
+            self.add_direction(df, df_quotes[self.field] > df[self.Columns.SMA.value], df_quotes[self.field] < df[self.Columns.SMA.value])
             df = utils.round_df(df)
             return df
 
@@ -455,7 +458,36 @@ class RSI(IndicatorRunner):
         return df
 
 
-class PickleIndicatorRunnerWrapper(object):
+class PriceVolumeTrend(IndicatorRunner):
+    class Columns(Enum):
+        PVT = 'PVT'
+        FAST_MA = 'FAST_MA'
+        SLOW_MA = 'SLOW_MA'
+
+    def __init__(self, fast=10, slow=30):
+        super().__init__(self.__class__.__name__, locals())
+        self.fast = fast
+        self.slow = slow
+
+    def run(self, symbol, df_quotes, df_indicator=None):
+        if self.is_updated(df_quotes, df_indicator):
+            return df_indicator
+
+        df = pd.DataFrame(index=df_quotes.index)
+        df[self.Columns.PVT.value] = (((df_quotes.Close - df_quotes.shift(1).Close) / df_quotes.shift(1).Close) * df_quotes.Volume)
+        for i in df.index.values:
+            if pd.isnull(df[self.Columns.PVT.value].shift(1).loc[i]): continue
+            df.loc[i, self.Columns.PVT.value] = (((df_quotes.Close.loc[i] - df_quotes.Close.shift(1).loc[i]) / df_quotes.Close.shift(1).loc[i]) * df_quotes.Volume.loc[i]) + df[self.Columns.PVT.value].shift(1).loc[i]
+
+        df[self.Columns.FAST_MA.value] = self.factory.create(SMA, period=self.fast, field=self.Columns.PVT.value).run(symbol, df)[SMA.Columns.SMA.value]
+        df[self.Columns.SLOW_MA.value] = self.factory.create(SMA, period=self.slow, field=self.Columns.PVT.value).run(symbol, df)[SMA.Columns.SMA.value]
+
+        self.add_direction(df, df[self.Columns.FAST_MA.value] > df[self.Columns.SLOW_MA.value],
+                           df[self.Columns.FAST_MA.value] < df[self.Columns.SLOW_MA.value])
+        return df
+
+
+class IndicatorRunnerWrapper(object):
     def __init__(self, dir_path, runner):
         self.dir_path = dir_path
         self.runner = runner
@@ -492,7 +524,7 @@ class DefaultIndicatorRunnerFactory(IndicatorRunnerFactory):
         runner = cls(*args, **kwargs)
         runner.factory = DefaultIndicatorRunnerFactory(self.dir_path)
         save_path = self.dir_path / runner.unique_name
-        return PickleIndicatorRunnerWrapper(save_path, runner)
+        return IndicatorRunnerWrapper(save_path, runner)
 
 
 class Attribute(entity.Attribute):
