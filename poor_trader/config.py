@@ -36,7 +36,9 @@ EQUITY_CURVE_FILENAME = 'equity_curve.csv'
 
 TRANSACTIONS_FILENAME = 'transactions.csv'
 
+USER_APP_DIR_PATH = Path(os.path.expanduser('~/' + APP_DIR_NAME))
+
 
 def generate_backtesting_results_dir_path():
     datetime_tag = datetime.datetime.now().strftime(DATETIME_FORMAT_FILENAME_SAFE)
-    return Path(os.path.expanduser('~/' + APP_DIR_NAME)) / '{}_{}'.format(BACKTESTING_DIR_NAME, datetime_tag)
+    return USER_APP_DIR_PATH / '{}_{}'.format(BACKTESTING_DIR_NAME, datetime_tag)
