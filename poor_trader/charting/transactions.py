@@ -141,6 +141,8 @@ def create_indicator_subplots(transactions, indicator_factory: IndicatorFactory,
         tags = t[TransactionKey.TAGS.value]
         for indicator_name in tags.split(' '):
             indicators_unique_names.add(indicator_name)
+
+    indicators_unique_names = list(indicators_unique_names)
     for unique_name in indicators_unique_names:
         indicator = indicator_factory.create_by_unique_name(unique_name)
         indicator_runner = indicator_runner_factory.create_by_unique_name(unique_name)
