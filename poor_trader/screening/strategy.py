@@ -1,8 +1,35 @@
 import abc
 
+from poor_trader import utils
 from poor_trader.market import Market
 from poor_trader.screening import entity, indicator
 from poor_trader.screening.entity import Direction
+
+
+class StopPriceStrategy(entity.Strategy):
+
+    def __init__(self):
+        super().__init__(self.__class__.__name__)
+
+    def entry_condition(self, *args, **kwargs):
+        return False
+
+    def reentry_condition(self, *args, **kwargs):
+        return False
+
+    def exit_condition(self, date, symbol, market: Market, entry_date, direction=Direction.LONG):
+        df_quotes = market.get_quotes(symbol=symbol, start=entry_date, end=date)
+        if len(df_quotes.Close.values) > 2:
+            buy_price = df_quotes.Close.values[0]
+            prev_highs = df_quotes.High.values[1:]
+            prev_lows = df_quotes.Low.values[1:]
+            max_price = max(buy_price, max(prev_highs))
+            min_price = min(buy_price, min(prev_lows))
+            diff = utils.roundn(max_price - min_price)
+            stop_price = max_price - (diff * 0.2)
+            price = df_quotes.Close.values[-1]
+            return price < stop_price
+        return False
 
 
 class DefaultStrategy(entity.Strategy):
