@@ -81,6 +81,9 @@ if __name__ == '__main__':
     screener = DataFrameScreener(market.pkl_to_market('PSE', HISTORICAL_DATA_PATH), INDICATORS_PATH)
     df_long, df_short = screener.scan()
 
-    re_indicators = '^(atr_channel|donchian|bollinger|trend_strength|trailing_stops|ma_cross)_'
+    inc_indicators = [indicator.DonchianChannel.__name__,
+                      indicator.BollingerBand.__name__,
+                      indicator.ATRChannel.__name__]
+    re_indicators = '^({})'.format('|'.join(inc_indicators))
     screener.print('SHORT', df_short.filter(regex=re_indicators))
     screener.print('LONG', df_long.filter(regex=re_indicators))
