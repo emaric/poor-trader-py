@@ -189,17 +189,24 @@ if __name__ == '__main__':
     runner_factory = DefaultIndicatorRunnerFactory(INDICATORS_PATH)
     factory = DefaultIndicatorFactory(INDICATORS_PATH, market)
 
-    transactions = read_transactions_csv(TRANSACTIONS_DATA_PATH)
-    symbol_oc_line_items = transactions_to_grouped_open_close_line_items(transactions)
+    # transactions = read_transactions_csv(TRANSACTIONS_DATA_PATH)
+    # symbol_oc_line_items = transactions_to_grouped_open_close_line_items(transactions)
 
     donchian = factory.create(DonchianChannel)
-    macross = factory.create(MACross, fast=100, slow=120)
+    macross = factory.create(MACross, fast=50, slow=100)
     atr_channel = factory.create(ATRChannel)
 
-    symbols = symbol_oc_line_items.keys()
+    # symbols = symbol_oc_line_items.keys()
+    symbols = market.get_symbols()
+    print(symbols)
     for symbol in symbols:
-        start = pd.to_datetime('2013-08-20')
-        end = pd.to_datetime('2013-11-23')
+        #df_quotes = market.get_quotes(symbol=symbol)
+        #start = df_quotes['Date'][0]
+        #end = df_quotes['Date'][300]
+
+        start = pd.to_datetime('2010-07-01')
+        end = pd.to_datetime('2018-08-09')
+
         df_quotes = market.get_quotes(symbol=symbol, start=start, end=end)
 
         quote_chart_item = df_to_quote_chart_item(df_quotes, OHLC)
@@ -220,12 +227,13 @@ if __name__ == '__main__':
                                       LineSubplot.Config(MACross.Columns.FAST, '#3af8ff', 2),
                                       LineSubplot.Config(MACross.Columns.SLOW, '#bd3aff', 2))
 
-        oc_subplot = OpenCloseSubplot(quote_chart_item, symbol_oc_line_items[symbol], location=0)
+        # oc_subplot = OpenCloseSubplot(quote_chart_item, symbol_oc_line_items[symbol], location=0)
 
         create(quote_subplot,
                *subplots_indicators.create(donchian, DonchianChannel.Columns, symbol, start, end),
                *subplots_indicators.create(atr_channel, ATRChannel.Columns, symbol, start, end),
                *subplots_indicators.create(macross, MACross.Columns, symbol, start, end),
-               oc_subplot,
+               # oc_subplot,
                title=symbol)
+        pass
 

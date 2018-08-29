@@ -20,6 +20,15 @@ class DefaultPortfolio(Portfolio):
         self.save_dir_path = save_dir_path or config.generate_backtesting_results_dir_path()
         print('!!!Saving backtest results to ' + self.save_dir_path)
 
+    def print_details(self):
+        print('***')
+        print('{:<17s}: {}'.format('Portfolio', self.name))
+        print('{:<17s}: {}'.format('Market', self.market.name ))
+        print('{:<17s}: {}'.format('Broker', self.broker.name))
+        print('{:<17s}: {}'.format('Position Sizing', self.position_sizing.name))
+        print('{:<17s}: {}'.format('Starting Balance', self.account.starting_balance))
+        print('***')
+
     def update_account_on_close(self, exit_value):
         self.account.cash = self.account.cash + exit_value
         self.account.buying_power = self.account.cash - (self.account.equity * 0.05)
@@ -110,7 +119,7 @@ if __name__ == '__main__':
     from poor_trader.backtesting.backtester import DefaultBacktester
     from poor_trader.backtesting.broker import PSEDefaultBroker
     from poor_trader.backtesting.equity_curve import DefaultEquityCurve
-    from poor_trader.backtesting.position_sizing import EquityPercentage
+    from poor_trader.backtesting.position_sizing import FixedFractional
     from poor_trader.screening.indicator import DefaultIndicatorFactory
     from poor_trader.screening.strategy import DonchianChannel, ATRChannelBreakout
 
@@ -132,7 +141,7 @@ if __name__ == '__main__':
     colport = DefaultPortfolio(account=Account(1000000),
                                market=pse_market,
                                broker=PSEDefaultBroker(),
-                               position_sizing=EquityPercentage(pse_market),
+                               position_sizing=FixedFractional(pse_market),
                                equity_curve=DefaultEquityCurve(),
                                strategies=strategies,
                                name='test3')

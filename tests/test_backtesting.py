@@ -10,7 +10,7 @@ from poor_trader.backtesting.broker import PSEDefaultBroker
 from poor_trader.backtesting.entity import Account
 from poor_trader.backtesting.equity_curve import DefaultEquityCurve
 from poor_trader.backtesting.portfolio import DefaultPortfolio
-from poor_trader.backtesting.position_sizing import EquityPercentage
+from poor_trader.backtesting.position_sizing import FixedFractional
 from poor_trader.market import csv_to_market
 from poor_trader.screening.indicator import DefaultIndicatorFactory
 from poor_trader.screening.strategy import ATRChannelBreakout, TrendStrength
@@ -30,7 +30,7 @@ class TestBacktesting(unittest.TestCase):
 
         self.portfolio = DefaultPortfolio(account=self.account,
                                           market=self.market,
-                                          position_sizing=EquityPercentage(market=self.market),
+                                          position_sizing=FixedFractional(market=self.market),
                                           broker=PSEDefaultBroker(),
                                           equity_curve=DefaultEquityCurve(),
                                           strategies=[atr_channel_breakout, trend_strength])

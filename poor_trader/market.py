@@ -1,6 +1,11 @@
 import abc
+import datetime
+import os
+import traceback
 
 import pandas as pd
+
+from poor_trader import config
 
 
 class Market(object):
@@ -44,8 +49,8 @@ class Market(object):
 
 
 class DataFrameMarket(Market):
-    def __init__(self, df_historical_data, symbols=None, name='DataFrameMarket'):
-        super().__init__(symbols, name)
+    def __init__(self, df_historical_data, symbols=None, name=None):
+        super().__init__(symbols, name or self.__class__.__name__)
         self.__df_historical_data__ = df_historical_data
 
     def get_dates(self, symbols=None, start=None, end=None):
@@ -114,3 +119,50 @@ def csv_to_market(name, csv_path, symbols=None):
 def pkl_to_market(name, pkl_path, symbols=None):
     df_historical_data = pd.read_pickle(pkl_path)
     return DataFrameMarket(df_historical_data=df_historical_data, name=name, symbols=symbols)
+
+
+def list_json_files(json_dir_path):
+    files = os.listdir(json_dir_path)
+    return [os.path.splitext(_)[0] for _ in files if os.path.splitext(_)[-1] == '.json']
+
+
+def read_json_file(json_path, datetime_format='%Y-%m-%d %H:00:00'):
+    df_raw = pd.read_json(json_path)
+    df_raw.t = df_raw.t.apply(lambda t: datetime.datetime.fromtimestamp(t).strftime(datetime_format))
+    df = pd.DataFrame()
+    df['Date'] = df_raw.t
+    df['Open'] = df_raw.o
+    df['High'] = df_raw.h
+    df['Low'] = df_raw.l
+    df['Close'] = df_raw.c
+    df['Volume'] = df_raw.v
+
+    df['Date'] = [pd.to_datetime(_) for _ in df.Date.values]
+    df.index = df.Date.values
+    return df
+
+
+def read_json_files(symbols, json_dir_path):
+    df = pd.DataFrame()
+    for symbol in symbols:
+        try:
+            df_quotes = read_json_file(json_dir_path / '{}.json'.format(symbol))
+            df_quotes.columns = ['{}_{}'.format(symbol, col) for col in df_quotes.columns]
+            df = df.join(df_quotes, how='outer')
+        except:
+            print(traceback.print_exc())
+    return df
+
+
+def json_files_directory_to_market(name, json_dir_path, symbols=None):
+    symbols = symbols or list_json_files(json_dir_path)
+    symbols = [_ for _ in symbols if os.path.exists(json_dir_path / '{}.json'.format(_))]
+    df_historical_data = read_json_files(symbols, json_dir_path)
+    print(df_historical_data)
+    pass
+
+
+if __name__ == '__main__':
+    from path import Path
+    dir_path = config.RESOURCES_PATH / 'json_stocks'
+    json_files_directory_to_market('test', Path(dir_path))
