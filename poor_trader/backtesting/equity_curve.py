@@ -64,6 +64,12 @@ class DefaultEquityCurve(EquityCurve):
             return self.df[EquityCurveKey.DRAWDOWN_PERCENT.value]
         return self.df.loc[date][EquityCurveKey.DRAWDOWN_PERCENT.value]
 
+    def get_last_drawdown_percent(self):
+        try:
+            return self.get_drawdown_percent()[-1]
+        except:
+            return 0
+
     def save_to_file(self, dir_path):
         utils.makedirs(dir_path)
         self.df.to_csv(dir_path / 'equity_curve.csv')

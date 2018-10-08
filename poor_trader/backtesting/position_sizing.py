@@ -14,9 +14,11 @@ class FixedFractional(PositionSizing):
         self.total_risk_pct = total_risk_pct
         self.unit_risk = unit_risk
 
-    def calculate_shares(self, date, symbol, account, use_boardlot=True):
+    def calculate_shares(self, date, symbol, account, use_boardlot=True, base_value=None):
         price = self.market.get_close(date, symbol)
         C = account.equity * self.total_risk_pct
+        if base_value is not None:
+            C = base_value * self.total_risk_pct
         R = price * self.unit_risk
         P = C / R
         shares = int(P)

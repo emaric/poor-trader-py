@@ -279,8 +279,8 @@ class DonchianChannel(IndicatorRunner):
 
         self.add_direction(df, np.logical_and(df[self.Columns.HIGH.value].shift(1) < df[self.Columns.HIGH.value],
                                               df[self.Columns.LOW.value].shift(1) <= df[self.Columns.LOW.value]),
-                           np.logical_and(df[self.Columns.LOW.value].shift(1) > df[self.Columns.LOW.value],
-                                          df[self.Columns.HIGH.value].shift(1) >= df[self.Columns.HIGH.value]))
+                           np.logical_or(df[self.Columns.LOW.value].shift(1) > df[self.Columns.LOW.value],
+                                          df[self.Columns.HIGH.value].shift(1) > df[self.Columns.HIGH.value]))
         df = utils.round_df(df)
         return df
 

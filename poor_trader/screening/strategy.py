@@ -76,7 +76,7 @@ class ATRChannelBreakout(DefaultStrategy):
 
 
 class DonchianChannel(DefaultStrategy):
-    def __init__(self, indicator_factory: indicator.IndicatorFactory, high=50, low=50, fast=100, slow=120):
+    def __init__(self, indicator_factory: indicator.IndicatorFactory, high=20, low=20, fast=1, slow=100):
         super().__init__(indicator_factory)
         self.high = high
         self.low = low
@@ -88,6 +88,13 @@ class DonchianChannel(DefaultStrategy):
         donchian_channel = self.indicator_factory.create(indicator.DonchianChannel, high=self.high, low=self.low)
         ma_cross = self.indicator_factory.create(indicator.MACross, fast=self.fast, slow=self.slow)
         return [donchian_channel, ma_cross]
+
+    def exit_condition(self, date, symbol, market: Market, entry_date, direction=Direction.LONG):
+        exit_direction = Direction.SHORT if direction == Direction.LONG else Direction.LONG
+        exit_tags = self.get_indicator_names(direction=exit_direction, date=date, symbol=symbol, start=entry_date)
+        entry_tags = self.get_indicator_names(direction=direction, date=date, symbol=symbol, start=entry_date)
+        ret = len([_ for _ in entry_tags if _ not in exit_tags]) <= 0
+        return ret or len(exit_tags) >= 1
 
 
 class TrendStrength(DefaultStrategy):

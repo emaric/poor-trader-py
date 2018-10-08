@@ -37,7 +37,7 @@ most_active = ['MBT', 'ALI', 'BDO', 'AC', 'SM', 'BPI', 'SECB', 'ICT', 'JFC',
 
 symbols = [_ for _ in symbols if _ in most_active]
 
-starting_balance = 100000
+starting_balance = 15000
 
 broker = PSEDefaultBroker()
 
@@ -53,10 +53,10 @@ position_sizing = FixedFractional(market)
 
 save_dir_path = config.USER_APP_DIR_PATH / 'investa'
 
-# dc = strategy.DonchianChannel(factory, 50, 50, fast=40, slow=60)
-dc = strategy.DonchianChannel(factory)
+dc = strategy.DonchianChannel(factory, 50, 50, fast=40, slow=100)
+# dc = strategy.DonchianChannel(factory)
 atr = strategy.ATRChannelBreakout(factory, sma=20, fast=40, slow=100)
-ts = strategy.TrendStrength(factory, fast=10, slow=60)
+ts = strategy.TrendStrength(factory, fast=40, slow=100)
 stop_price = strategy.StopPriceStrategy()
 
 dc_portfolio = DefaultPortfolio(account=Account(starting_balance),
@@ -95,8 +95,8 @@ default_portfolio = DefaultPortfolio(account=Account(starting_balance),
                                      name='DefaultPorfolio',
                                      save_dir_path=save_dir_path)
 
-start = pd.to_datetime('2016-08-24')
-end = pd.to_datetime('2018-08-24')
+start = pd.to_datetime('2013-01-01')
+end = pd.to_datetime('today')  # pd.to_datetime('2018-08-28')
 
 
 def create_chart(portfolio: DefaultPortfolio):

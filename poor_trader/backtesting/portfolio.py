@@ -51,11 +51,17 @@ class DefaultPortfolio(Portfolio):
     def update_account_on_open(self, entry_value=0.0, exit_value=0.0):
         self.account.cash = self.account.cash - entry_value
         self.account.equity = self.account.cash + exit_value
-        self.account.buying_power = self.account.cash - (self.account.equity * 0.05)
+        if self.equity_curve.get_last_drawdown_percent() < -5.0 and self.account.equity > self.account.starting_balance:
+            self.account.buying_power = self.account.cash - ((self.account.equity - self.account.starting_balance) / 2) # (self.account.equity * 0.05)
+        else:
+            self.account.buying_power = self.account.cash
 
     def open(self, date, symbol, tags):
         price = self.market.get_close(date, symbol)
         shares = self.position_sizing.calculate_shares(date=date, symbol=symbol, account=self.account)
+        if self.equity_curve.get_last_drawdown_percent() < -5.0:
+            shares = self.position_sizing.calculate_shares(date=date, symbol=symbol, account=self.account,
+                                                           base_value=self.account.starting_balance)
         if shares > 0:
             value = self.broker.calculate_buy_value(price=price, shares=shares)
             sell_value = self.broker.calculate_sell_value(price=price, shares=shares)
